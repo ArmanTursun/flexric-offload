@@ -1,3 +1,6 @@
+# FlexRIC for Hardware Accelerator Controller
+This is an extended version of FlexRIC for HA Controller. The original version please refer to [flexric](https://gitlab.eurecom.fr/mosaic5g/flexric/-/tree/master?ref_type=heads)
+
 # FlexRIC
 
 This repository contains [O-RAN Alliance](https://www.o-ran.org/) compliant E2 Node Agent emulators, a nearRT-RIC, and xApps written in C/C++ and Python.
