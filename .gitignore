@@ -2,5 +2,7 @@
 *.py
 *.swp
 *.json
+*.DS_Store
 build/
 tags
+.DS_Store
