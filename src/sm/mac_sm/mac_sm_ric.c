@@ -115,16 +115,17 @@ static
 sm_ctrl_req_data_t ric_on_control_req_mac_sm_ric(sm_ric_t const* sm_ric, void* ctrl)
 {
   assert(sm_ric != NULL); 
-  assert(ctrl != NULL); 
+  assert(ctrl != NULL);
+
+  sm_mac_ric_t* sm = (sm_mac_ric_t*)sm_ric;
+
   mac_ctrl_req_data_t const* req = (mac_ctrl_req_data_t const*)ctrl;
   assert(req->hdr.dummy == 1);
   assert(req->msg.action == 42);
 
-  sm_mac_ric_t* sm = (sm_mac_ric_t*)sm_ric;  
-
   byte_array_t ba = mac_enc_ctrl_hdr(&sm->enc, &req->hdr);
-  
-  sm_ctrl_req_data_t ret_data = {0};  
+
+  sm_ctrl_req_data_t ret_data = {0};
   ret_data.ctrl_hdr = ba.buf;
   ret_data.len_hdr = ba.len;
 

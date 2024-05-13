@@ -310,15 +310,18 @@ void free_mac_ctrl_hdr( mac_ctrl_hdr_t* src)
 {
 
   assert(src != NULL);
-  assert(0!=0 && "Not implemented" ); 
+  //assert(0!=0 && "Not implemented" );
+  (void)src;
 }
 
 mac_ctrl_hdr_t cp_mac_ctrl_hdr(mac_ctrl_hdr_t* src)
 {
   assert(src != NULL);
-  assert(0!=0 && "Not implemented" ); 
-  mac_ctrl_hdr_t ret = {0};
-  return ret;
+  //assert(0!=0 && "Not implemented" );
+  //mac_ctrl_hdr_t ret = {0};
+  //return ret;
+  mac_ctrl_hdr_t dst = {.dummy = src->dummy};
+  return dst;
 }
 
 bool eq_mac_ctrl_hdr(mac_ctrl_hdr_t* m0, mac_ctrl_hdr_t* m1)
@@ -326,9 +329,10 @@ bool eq_mac_ctrl_hdr(mac_ctrl_hdr_t* m0, mac_ctrl_hdr_t* m1)
   assert(m0 != NULL);
   assert(m1 != NULL);
 
-  assert(0!=0 && "Not implemented" ); 
+  //assert(0!=0 && "Not implemented" );
 
-  return true;
+  //return true;
+  return m0->dummy == m1->dummy;
 }
 
 
@@ -341,16 +345,21 @@ void free_mac_ctrl_msg( mac_ctrl_msg_t* src)
 {
   assert(src != NULL);
 
-  assert(0!=0 && "Not implemented" ); 
+  //assert(0!=0 && "Not implemented" );
+  (void)src;
 }
 
 mac_ctrl_msg_t cp_mac_ctrl_msg(mac_ctrl_msg_t* src)
 {
   assert(src != NULL);
 
-  assert(0!=0 && "Not implemented" ); 
-  mac_ctrl_msg_t ret = {0};
-  return ret;
+  //assert(0!=0 && "Not implemented" );
+  //mac_ctrl_msg_t ret = {0};
+  //return ret;
+  mac_ctrl_msg_t dst = {0};
+  dst.action = src->action;
+  dst.offload = src->offload;
+  return dst;
 }
 
 bool eq_mac_ctrl_msg(mac_ctrl_msg_t* m0, mac_ctrl_msg_t* m1)
@@ -358,8 +367,12 @@ bool eq_mac_ctrl_msg(mac_ctrl_msg_t* m0, mac_ctrl_msg_t* m1)
   assert(m0 != NULL);
   assert(m1 != NULL);
 
-  assert(0!=0 && "Not implemented" ); 
+  //assert(0!=0 && "Not implemented" );
 
+  //return true;
+  if (m0->action != m1->action || m0->offload != m1->offload) {
+    return false;
+  }
   return true;
 }
 
@@ -372,14 +385,15 @@ void free_mac_ctrl_out(mac_ctrl_out_t* src)
 {
   assert(src != NULL);
 
-  assert(0!=0 && "Not implemented" ); 
+  //assert(0!=0 && "Not implemented" );
+  // Do nothing
 }
 
 mac_ctrl_out_t cp_mac_ctrl_out(mac_ctrl_out_t* src)
 {
   assert(src != NULL);
 
-  assert(0!=0 && "Not implemented" ); 
+  //assert(0!=0 && "Not implemented" );
   mac_ctrl_out_t ret = {0}; 
   return ret;
 }
@@ -389,7 +403,7 @@ bool eq_mac_ctrl_out(mac_ctrl_out_t* m0, mac_ctrl_out_t* m1)
   assert(m0 != NULL);
   assert(m1 != NULL);
 
-  assert(0!=0 && "Not implemented" ); 
+  //assert(0!=0 && "Not implemented" );
 
   return true;
 }
