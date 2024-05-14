@@ -44,6 +44,7 @@ class MACCallback(ric.mac_cb):
                 ric.control_mac_sm(conn[i].id, ctrl)
             else:
                 ldpc_offload["offload"] = 0
+                print("Does not offload")
 
 def fill_mac_ctrl_msg(ctrl_msg):
     #wr = ric.mac_ctrl_req_data_t()
