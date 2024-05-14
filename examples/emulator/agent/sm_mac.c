@@ -1,6 +1,7 @@
 #include "sm_mac.h"
 #include "../../../test/rnd/fill_rnd_data_mac.h"
 #include <assert.h>
+#include <stdio.h>
 
 void init_mac_sm(void)
 {
@@ -39,6 +40,7 @@ sm_ag_if_ans_t write_ctrl_mac_sm(void const* data)
   mac_ctrl_req_data_t* ctrl = (mac_ctrl_req_data_t*)data; 
   assert(ctrl->hdr.dummy == 1);
   assert(ctrl->msg.action == 42);
+  //printf("offload control: %d \n", ctrl->msg.offload);
 
   sm_ag_if_ans_t ans = {.type = CTRL_OUTCOME_SM_AG_IF_ANS_V0 };
   return ans;

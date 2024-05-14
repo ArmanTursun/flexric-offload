@@ -56,7 +56,7 @@ int report_mac_sm(global_e2_node_id_t* id, Interval inter, mac_cb* handler);
 
 void rm_report_mac_sm(int);
 
-void control_mac_sm(global_e2_node_id_t* id, mac_ctrl_msg_t* ctrl)
+void control_mac_sm(global_e2_node_id_t* id, mac_ctrl_msg_t* ctrl);
 
 //////////////////////////////////////
 // RLC SM   
