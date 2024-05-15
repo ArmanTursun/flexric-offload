@@ -37,14 +37,15 @@ class MACCallback(ric.mac_cb):
             tbs = ue_context.ul_curr_tbs
             if (tbs > 5000):
                 ldpc_offload["offload"] = 1
-                print('MAC Indication tstamp = ' + str(t_mac) + ' latency = ' + str(t_diff) + ' μs')
+                #print('MAC Indication tstamp = ' + str(t_mac) + ' latency = ' + str(t_diff) + ' μs')
+                print('TBS: ' + str(ue_context.ul_curr_tbs) + ' latency = ' + str(t_diff) + ' μs')
                 #print('MAC rnti = ' + str(ind.ue_stats[0].rnti))            
-                print('TBS: ', ue_context.ul_curr_tbs)
-                ctrl = fill_mac_ctrl_msg(ldpc_offload)
-                ric.control_mac_sm(conn[i].id, ctrl)
+                #print('TBS: ', ue_context.ul_curr_tbs)
             else:
                 ldpc_offload["offload"] = 0
                 print("Does not offload")
+            ctrl = fill_mac_ctrl_msg(ldpc_offload)
+            ric.control_mac_sm(conn[i].id, ctrl)
 
 def fill_mac_ctrl_msg(ctrl_msg):
     #wr = ric.mac_ctrl_req_data_t()
@@ -82,7 +83,7 @@ for i in range(0, len(conn)):
     #ric.control_mac_sm(conn[i].id, ctrl)
     #time.sleep(1)
 
-time.sleep(2)
+time.sleep(20)
 
 #offload_ind = 22
 

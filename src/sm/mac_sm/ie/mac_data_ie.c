@@ -311,7 +311,7 @@ void free_mac_ctrl_hdr( mac_ctrl_hdr_t* src)
 
   assert(src != NULL);
   //assert(0!=0 && "Not implemented" );
-  (void)src;
+  free(src);
 }
 
 mac_ctrl_hdr_t cp_mac_ctrl_hdr(mac_ctrl_hdr_t* src)
@@ -346,7 +346,7 @@ void free_mac_ctrl_msg( mac_ctrl_msg_t* src)
   assert(src != NULL);
 
   //assert(0!=0 && "Not implemented" );
-  (void)src;
+  free(src);
 }
 
 mac_ctrl_msg_t cp_mac_ctrl_msg(mac_ctrl_msg_t* src)
@@ -384,6 +384,7 @@ bool eq_mac_ctrl_msg(mac_ctrl_msg_t* m0, mac_ctrl_msg_t* m1)
 void free_mac_ctrl_out(mac_ctrl_out_t* src)
 {
   assert(src != NULL);
+  free(src);
 
   //assert(0!=0 && "Not implemented" );
   // Do nothing

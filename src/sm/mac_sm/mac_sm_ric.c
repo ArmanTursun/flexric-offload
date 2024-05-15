@@ -59,16 +59,12 @@ sm_subs_data_t on_subscription_mac_sm_ric(sm_ric_t const* sm_ric, void* cmd)
   const int max_str_sz = 10;
   if(strncmp(cmd, "1_ms", max_str_sz) == 0 ){
     mac.et.ms = 1;
-    printf("period is 1 ms\n");
   } else if (strncmp(cmd, "2_ms", max_str_sz) == 0 ) {
     mac.et.ms = 2;
-    printf("period is 2 ms\n");
   } else if (strncmp(cmd, "5_ms", max_str_sz) == 0 ) {
     mac.et.ms = 5;
-    printf("period is 5 ms\n");
   } else if (strncmp(cmd, "10_ms", max_str_sz) == 0 ) {
     mac.et.ms = 10;
-    printf("period is 10 ms\n");
   } else {
     assert(0 != 0 && "Invalid input");
   }

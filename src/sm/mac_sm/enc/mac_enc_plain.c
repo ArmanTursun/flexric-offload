@@ -131,10 +131,25 @@ byte_array_t mac_enc_ctrl_msg_plain(mac_ctrl_msg_t const* ctrl_msg)
 
 byte_array_t mac_enc_ctrl_out_plain(mac_ctrl_out_t const* ctrl) 
 {
-  assert(0!=0 && "Not implemented");
 
   assert(ctrl != NULL );
   byte_array_t  ba = {0};
+
+  //ba.len = sizeof(ctrl->len_diag) + ctrl->len_diag;
+
+  //ba.buf = malloc(ba.len);
+  //assert(ba.buf != NULL && "Memory exhausted");
+  //uint8_t* it = ba.buf;
+
+  //memcpy(it, &ctrl->len_diag, sizeof(ctrl->len_diag));
+  //it += sizeof(ctrl->len_diag);
+
+  //memcpy(it, ctrl->diagnostic, ctrl->len_diag);
+  //it += ctrl->len_diag;
+
+  //assert(it == ba.buf + ba.len);
+
+
   return ba;
 }
 

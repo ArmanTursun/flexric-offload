@@ -38,11 +38,18 @@ sm_ag_if_ans_t write_ctrl_mac_sm(void const* data)
   assert(data != NULL);
 
   mac_ctrl_req_data_t* ctrl = (mac_ctrl_req_data_t*)data; 
+  mac_ctrl_msg_t const* msg = &ctrl->msg;
+
   assert(ctrl->hdr.dummy == 1);
   assert(ctrl->msg.action == 42);
-  printf("offload control: %d \n", ctrl->msg.offload);
+  if (ctrl->msg.offload > 0){
+    printf("offload control: %d \n", ctrl->msg.offload);
+  } else {
+    printf("Does not offload \n");
+  }
 
   sm_ag_if_ans_t ans = {.type = CTRL_OUTCOME_SM_AG_IF_ANS_V0 };
+  ans.ctrl_out.type = MAC_AGENT_IF_CTRL_ANS_V0;
   return ans;
 }
 
