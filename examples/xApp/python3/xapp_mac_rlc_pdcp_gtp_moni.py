@@ -83,7 +83,7 @@ for i in range(0, len(conn)):
     #ric.control_mac_sm(conn[i].id, ctrl)
     #time.sleep(1)
 
-time.sleep(20)
+time.sleep(5)
 
 #offload_ind = 22
 
