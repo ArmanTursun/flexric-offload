@@ -28,7 +28,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
-
+#include <stdio.h>
 static inline
 void free_sctp_info(void* key, void* value)
 {
@@ -119,7 +119,6 @@ sctp_info_t* rm_map_e2_node_sad(map_e2_node_sockaddr_t* m, global_e2_node_id_t* 
   assert(id != NULL);
 
   lock_guard(&m->mtx);
-
   sctp_info_t* s = bi_map_extract_left(&m->map, id, sizeof(global_e2_node_id_t), free_global_e2_node_id_wrapper);
   return s;
 

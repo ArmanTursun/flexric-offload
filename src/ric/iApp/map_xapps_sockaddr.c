@@ -28,7 +28,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
-
+#include <stdio.h>
 static inline
 void free_sctp_info(void* key, void* value)
 {

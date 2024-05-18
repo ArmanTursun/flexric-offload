@@ -14,7 +14,12 @@ class MACCallback(ric.mac_cb):
     def __init__(self):
         # Call C++ base class constructor
         ric.mac_cb.__init__(self)
-        self.cnt = 0    
+        self.cnt = 0
+        self.tbs = 0
+        self.ldpc_offload = {
+            'offload' : 0
+        }
+        self.t_10 = time.time_ns() / 1000.0
     # Override C++ method: virtual void handle(swig_mac_ind_msg_t a) = 0;
     def handle(self, ind):
         # Print swig_mac_ind_msg_t
@@ -28,24 +33,29 @@ class MACCallback(ric.mac_cb):
             t_mac = ind.tstamp / 1.0
             t_diff = t_now - t_mac
             self.cnt += 1
-
-            ldpc_offload = {
-                "offload" : 0
-            }
+            if (t_now - self.t_10 >= 10000):
+                ctrl_send = True
+                self.t_10 = t_now
+            else:
+                ctrl_send = False
 
             ue_context = ind.ue_stats[0]
             tbs = ue_context.ul_curr_tbs
-            if (tbs > 5000):
-                ldpc_offload["offload"] = 1
-                #print('MAC Indication tstamp = ' + str(t_mac) + ' latency = ' + str(t_diff) + ' μs')
-                print('TBS: ' + str(ue_context.ul_curr_tbs) + ' latency = ' + str(t_diff) + ' μs')
-                #print('MAC rnti = ' + str(ind.ue_stats[0].rnti))            
-                #print('TBS: ', ue_context.ul_curr_tbs)
-            else:
-                ldpc_offload["offload"] = 0
-                print("Does not offload")
-            ctrl = fill_mac_ctrl_msg(ldpc_offload)
-            ric.control_mac_sm(conn[i].id, ctrl)
+            if (tbs > 0 and self.tbs != tbs):
+                if (tbs > 8448):
+                    self.ldpc_offload["offload"] = 1
+                	#print('MAC Indication tstamp = ' + str(t_mac) + ' latency = ' + str(t_diff) + ' μs')
+                    #print('TBS: ' + str(ue_context.ul_curr_tbs) + 'MAC Indication tstamp = ' + str(t_mac) +  ' latency = ' + str(t_diff) + ' μs')
+                	#print('MAC rnti = ' + str(ind.ue_stats[0].rnti))            
+                	#print('TBS: ', ue_context.ul_curr_tbs)
+                else:
+                    self.ldpc_offload["offload"] = 0
+
+                if (ctrl_send):
+                    ctrl = fill_mac_ctrl_msg(self.ldpc_offload)
+                    ric.control_mac_sm(conn[i].id, ctrl)
+                    print(self.t_10)       
+                self.tbs = tbs
 
 def fill_mac_ctrl_msg(ctrl_msg):
     #wr = ric.mac_ctrl_req_data_t()
@@ -83,17 +93,17 @@ for i in range(0, len(conn)):
     #ric.control_mac_sm(conn[i].id, ctrl)
     #time.sleep(1)
 
-time.sleep(5)
+time.sleep(20)
 
-#offload_ind = 22
+#offload_ind = 0
 
 #ldpc_offload = {
 #    "offload" : 0
 #}
 
-#for j in range(5):
-#    offload_ind = offload_ind + j
-#    ldpc_offload['offload'] = offload_ind
+#for j in range(1000):
+#    #offload_ind = offload_ind + j
+#    ldpc_offload['offload'] = j
 #    ctrl = fill_mac_ctrl_msg(ldpc_offload)
 #    ric.control_mac_sm(conn[i].id, ctrl)
 

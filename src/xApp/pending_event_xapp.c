@@ -27,7 +27,7 @@
 #include "../util/compare.h"
 #include "../util/alg_ds/ds/lock_guard/lock_guard.h"
 #include "../util/alg_ds/alg/alg.h"
-
+#include <stdio.h>
 
 bool eq_pending_event_xapp(pending_event_xapp_t* m0, pending_event_xapp_t* m1)
 {

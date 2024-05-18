@@ -25,7 +25,7 @@
 #include "xapp_ric_id.h"
 
 #include <assert.h>
-
+#include <stdio.h>
 static inline
 int cmp_uint32(const void* m0_v, const void* m1_v)
 {
