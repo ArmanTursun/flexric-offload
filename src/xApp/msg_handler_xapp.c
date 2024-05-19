@@ -77,8 +77,10 @@ void add_pending_event_xapp(e42_xapp_t* xapp, pending_event_xapp_t* ev)
   assert(xapp != NULL);
   assert(ev != NULL);
   assert(ev->wait_ms > 0);
-
+  
+  printf("Before create timer\n");
   int fd_timer = create_timer_ms_asio_xapp(&xapp->io, ev->wait_ms, ev->wait_ms); 
+  printf("After create timer\n");
   add_pending_event(&xapp->pending, fd_timer, ev);
 }
 
@@ -287,6 +289,7 @@ sm_ind_data_t ind_sm_payload(ric_indication_t const* src)
 #ifdef E2AP_V1 
   assert( ack->status == RIC_CONTROL_STATUS_SUCCESS && "Only success supported ") ;
 #endif
+  //printf("ack->status == %d \n", ack->status);
   act_proc_ans_t rv = find_act_proc(&xapp->act_proc, ack->ric_id.ric_req_id);
   assert(rv.ok == true && "ric_req_id not registered in the registry");
 

@@ -359,6 +359,7 @@ mac_ctrl_msg_t cp_mac_ctrl_msg(mac_ctrl_msg_t* src)
   mac_ctrl_msg_t dst = {0};
   dst.action = src->action;
   dst.offload = src->offload;
+  dst.tms = src->tms;
   return dst;
 }
 
@@ -370,7 +371,8 @@ bool eq_mac_ctrl_msg(mac_ctrl_msg_t* m0, mac_ctrl_msg_t* m1)
   //assert(0!=0 && "Not implemented" );
 
   //return true;
-  if (m0->action != m1->action || m0->offload != m1->offload) {
+  if (m0->action != m1->action || m0->offload != m1->offload || 
+    m0->tms != m1->tms) {
     return false;
   }
   return true;

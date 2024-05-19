@@ -90,10 +90,11 @@ int create_timer_ms_asio_xapp(asio_xapp_t* io, long initial_ms, long interval_ms
   const int flags_2 = 0;
   struct itimerspec *old_value = NULL; // not interested in how the timer was previously configured
   const struct itimerspec new_value = {.it_interval = it_interval, .it_value = it_value};
+  printf("Before rc = timerfd_settime \n");
   int rc = timerfd_settime(tfd, flags_2, &new_value, old_value);
   assert(rc != -1);
 
-//  printf("Adding fd = %d into the RIC\n", tfd);
+  printf("Adding fd = %d into the RIC\n", tfd);
   add_fd_asio_xapp(io, tfd);
   return tfd;
 }
