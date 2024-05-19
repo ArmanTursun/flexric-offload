@@ -41,6 +41,9 @@
 #include "iApp/e42_iapp_api.h"
 
 #include "util/alg_ds/ds/lock_guard/lock_guard.h"
+#include "util/time_now_us.h"
+#include <inttypes.h>
+
 
 static inline
 bool check_valid_msg_type(e2_msg_type_t msg_type)
@@ -248,6 +251,8 @@ void publish_ind_msg(near_ric_t* ric,  uint16_t ran_func_id, sm_ag_if_rd_ind_t* 
   assert(ric != NULL);
   assert(msg != NULL);
   assert(msg->type == RIC_CONTROL_ACKNOWLEDGE);
+  
+  printf("[NEAR-RIC]: tstamp: %" PRId64 "\n", msg->tstamp);
 
   ric_control_acknowledge_t const* ack = &msg->u_msgs.ric_ctrl_ack;
 #ifdef E2AP_V1 

@@ -28,7 +28,7 @@ class MACCallback(ric.mac_cb):
                 msg = ric.mac_ctrl_msg_t()
                 msg.action = 42
                 msg.offload = ctrl_msg["offload"]
-		msg.tms = time.time_ns() / 1000.0
+                msg.tms = time.time_ns() / 1000.0
                 return msg
             t_now = time.time_ns() / 1000.0
             t_mac = ind.tstamp / 1.0
@@ -54,8 +54,9 @@ class MACCallback(ric.mac_cb):
 
                 if (ctrl_send):
                     ctrl = fill_mac_ctrl_msg(self.ldpc_offload)
+                    print(ctrl.tms)
                     ric.control_mac_sm(conn[i].id, ctrl)
-                    print(ctrl.tms)       
+                    #print(ctrl.tms)       
                 self.tbs = tbs
 
 def fill_mac_ctrl_msg(ctrl_msg):

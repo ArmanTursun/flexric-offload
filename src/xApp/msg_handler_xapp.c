@@ -39,7 +39,7 @@
 #include "lib/pending_events.h"
 
 #include "../sm/rlc_sm/rlc_sm_id.h"
-
+#include <inttypes.h>
 static inline
 bool check_valid_msg_type(e2_msg_type_t msg_type)
 {
@@ -284,7 +284,7 @@ sm_ind_data_t ind_sm_payload(ric_indication_t const* src)
   assert(xapp != NULL);
   assert(msg != NULL);
   assert(msg->type == RIC_CONTROL_ACKNOWLEDGE);
-
+  printf("[xApp]: tstamp: %" PRId64 "\n", msg->tstamp);
   ric_control_acknowledge_t const* ack = &msg->u_msgs.ric_ctrl_ack;
 #ifdef E2AP_V1 
   assert( ack->status == RIC_CONTROL_STATUS_SUCCESS && "Only success supported ") ;
