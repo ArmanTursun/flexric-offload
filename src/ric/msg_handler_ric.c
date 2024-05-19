@@ -252,7 +252,7 @@ void publish_ind_msg(near_ric_t* ric,  uint16_t ran_func_id, sm_ag_if_rd_ind_t* 
   assert(msg != NULL);
   assert(msg->type == RIC_CONTROL_ACKNOWLEDGE);
   
-  printf("[NEAR-RIC]: tstamp: %" PRId64 "\n", msg->tstamp);
+  //printf("[NEAR-RIC]: tstamp: %" PRId64 "\n", msg->tstamp);
 
   ric_control_acknowledge_t const* ack = &msg->u_msgs.ric_ctrl_ack;
 #ifdef E2AP_V1 

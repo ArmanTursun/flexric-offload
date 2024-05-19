@@ -98,7 +98,7 @@ void add_pending_event(pending_event_xapp_ds_t* p, int fd ,pending_event_xapp_t*
   assert(ev != NULL);
   assert(fd > 0);
 
-  printf("adding event fd = %d ev-> %d \n", fd, ev->ev );
+  //printf("adding event fd = %d ev-> %d \n", fd, ev->ev );
   lock_guard(&p->pend_mtx);
   bi_map_insert(&p->pending, &fd, sizeof(fd), ev, sizeof(*ev));
 }
