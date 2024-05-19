@@ -177,7 +177,7 @@ int* rm_pending_event_ev(pending_event_xapp_ds_t* p, pending_event_xapp_t* ev )
     //while (sz == 0){
     	// do nothing
     //}
-    printf("Pending event size before remove = %ld \n", sz);
+    //printf("Pending event size before remove = %ld \n", sz);
 
     // It returns the void* of key1. the void* of the key2 is freed
     void (*free_pending_event_xapp)(void*) = NULL; 

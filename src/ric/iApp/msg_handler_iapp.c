@@ -166,7 +166,7 @@ e2ap_msg_t e2ap_handle_e42_ric_control_ack_iapp(e42_iapp_t* iapp, const e2ap_msg
   assert(msg->type == RIC_CONTROL_ACKNOWLEDGE);
 
   ric_control_acknowledge_t const* src = &msg->u_msgs.ric_ctrl_ack; 
-  printf("[iApp]: tstamp: %" PRId64 "\n", msg->tstamp);
+  //printf("[iApp]: tstamp: %" PRId64 "\n", msg->tstamp);
   xapp_ric_id_xpct_t const xpctd = find_xapp_map_ric_id(&iapp->map_ric_id, src->ric_id.ric_req_id);
   assert(xpctd.has_value == true && "RIC Req Id not found!"); 
   xapp_ric_id_t const x = xpctd.xapp_ric_id; 

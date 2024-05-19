@@ -78,9 +78,9 @@ void add_pending_event_xapp(e42_xapp_t* xapp, pending_event_xapp_t* ev)
   assert(ev != NULL);
   assert(ev->wait_ms > 0);
   
-  printf("Before create timer\n");
+  //printf("Before create timer\n");
   int fd_timer = create_timer_ms_asio_xapp(&xapp->io, ev->wait_ms, ev->wait_ms); 
-  printf("After create timer\n");
+  //printf("After create timer\n");
   add_pending_event(&xapp->pending, fd_timer, ev);
 }
 
@@ -284,7 +284,7 @@ sm_ind_data_t ind_sm_payload(ric_indication_t const* src)
   assert(xapp != NULL);
   assert(msg != NULL);
   assert(msg->type == RIC_CONTROL_ACKNOWLEDGE);
-  printf("[xApp]: tstamp: %" PRId64 "\n", msg->tstamp);
+  //printf("[xApp]: tstamp: %" PRId64 "\n", msg->tstamp);
   ric_control_acknowledge_t const* ack = &msg->u_msgs.ric_ctrl_ack;
 #ifdef E2AP_V1 
   assert( ack->status == RIC_CONTROL_STATUS_SUCCESS && "Only success supported ") ;

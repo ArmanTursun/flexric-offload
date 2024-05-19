@@ -275,7 +275,7 @@ e2ap_msg_t e2ap_handle_control_request_agent(e2_agent_t* ag, const e2ap_msg_t* m
   assert(ag != NULL);
   assert(msg != NULL);
   assert(msg->type == RIC_CONTROL_REQUEST);
-  printf("[E2-AGENT]: tstamp: %" PRId64 "\n", msg->tstamp);
+  //("[E2-AGENT]: tstamp: %" PRId64 "\n", msg->tstamp);
   ric_control_request_t const* ctrl_req = &msg->u_msgs.ric_ctrl_req;
   assert(ctrl_req->ack_req != NULL && *ctrl_req->ack_req == RIC_CONTROL_REQUEST_ACK );
 
