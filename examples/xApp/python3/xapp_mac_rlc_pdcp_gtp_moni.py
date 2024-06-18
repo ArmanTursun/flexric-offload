@@ -40,29 +40,30 @@ class MACCallback(ric.mac_cb):
             else:
                 ctrl_send = True
 
-            ue_context = ind.ue_stats[0]
-            tbs = ue_context.ul_curr_tbs
+            for ue_id in range(len(ind.ue_stats)):
+                ue_context = ind.ue_stats[ue_id]
+                tbs = ue_context.ul_curr_tbs
 
-            print('[xApp Monitor]: TBS = ' + str(ue_context.ul_curr_tbs) + ', timestamp = ' + str(ind.tstamp) + ', frame = ' + str(ue_context.frame) + 'slot = ' + str(ue_context.slot))
+                print('[xApp Monitor]: TBS = ' + str(ue_context.ul_curr_tbs) + ', timestamp = ' + str(ind.tstamp) + ', frame = ' + str(ue_context.frame) + ', slot = ' + str(ue_context.slot) + ', rnti = ' + str(ind.ue_stats[0].rnti))
 
-            if (tbs > 0):# and self.tbs != tbs):
-                if (tbs > 10000):
-                    self.ldpc_offload["offload"] = 1
-                	#print('MAC Indication tstamp = ' + str(t_mac) + ' latency = ' + str(t_diff) + ' μs')
-                    #print('TBS: ' + str(ue_context.ul_curr_tbs) + 'MAC Indication tstamp = ' + str(t_mac) +  ' latency = ' + str(t_diff) + ' μs')
-                	#print('MAC rnti = ' + str(ind.ue_stats[0].rnti))
-                    #print('[xApp Monitor]: TBS = ' + str(ue_context.ul_curr_tbs) +  ', latency = ' + str(t_diff) + ' μs' +  ', timestamp = ' + str(ind.tstamp))
-                else:
-                    self.ldpc_offload["offload"] = 0
+                if (tbs > 0):# and self.tbs != tbs):
+                    if (tbs > 10000):
+                        self.ldpc_offload["offload"] = 1
+                	    #print('MAC Indication tstamp = ' + str(t_mac) + ' latency = ' + str(t_diff) + ' μs')
+                        #print('TBS: ' + str(ue_context.ul_curr_tbs) + 'MAC Indication tstamp = ' + str(t_mac) +  ' latency = ' + str(t_diff) + ' μs')
+                	    #print('MAC rnti = ' + str(ind.ue_stats[0].rnti))
+                        #print('[xApp Monitor]: TBS = ' + str(ue_context.ul_curr_tbs) +  ', latency = ' + str(t_diff) + ' μs' +  ', timestamp = ' + str(ind.tstamp))
+                    else:
+                        self.ldpc_offload["offload"] = 0
                 
-                if (ctrl_send):
-                    #iprint('[xApp Monitor]: TBS = ' + str(ue_context.ul_curr_tbs) +  ', latency = ' + str(t_diff) + ' μs' +  ', timestamp = ' + str(ind.tstamp))
-                    ctrl = fill_mac_ctrl_msg(self.ldpc_offload)
-                    #print(ctrl.tms, tbs)
-                    print('[xApp Control]: TBS = ' + str(ue_context.ul_curr_tbs) +  ', timestamp = ' + str(ctrl.tms))
-                    ric.control_mac_sm(conn[i].id, ctrl)
-                    #print(ctrl.tms)                          
-                self.tbs = tbs
+                    if (ctrl_send):
+                        #iprint('[xApp Monitor]: TBS = ' + str(ue_context.ul_curr_tbs) +  ', latency = ' + str(t_diff) + ' μs' +  ', timestamp = ' + str(ind.tstamp))
+                        ctrl = fill_mac_ctrl_msg(self.ldpc_offload)
+                        #print(ctrl.tms, tbs)
+                        print('[xApp Control]: TBS = ' + str(ue_context.ul_curr_tbs) +  ', timestamp = ' + str(ctrl.tms))
+                        ric.control_mac_sm(conn[i].id, ctrl)
+                        #print(ctrl.tms)
+                    self.tbs = tbs
 
 def fill_mac_ctrl_msg(ctrl_msg):
     #wr = ric.mac_ctrl_req_data_t()
