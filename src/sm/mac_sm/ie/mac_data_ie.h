@@ -88,6 +88,7 @@ bool eq_mac_ind_hdr(mac_ind_hdr_t* m0, mac_ind_hdr_t* m1);
 // RIC Indication Message 
 /////////////////////////////////////
 
+/*
 typedef struct
 {
   uint32_t tbs;
@@ -96,7 +97,7 @@ typedef struct
   uint32_t latency;
   uint32_t crc_check; 
 } tbs_stats_t;
-
+*/
 typedef struct
 {
   uint64_t dl_aggr_tbs;
@@ -139,7 +140,7 @@ typedef struct
   int8_t phr; 
   
   uint8_t num_tbs;
-  tbs_stats_t tbs_list[10];
+  uint32_t tbs_list[10][5];
 
 } mac_ue_stats_impl_t;
 

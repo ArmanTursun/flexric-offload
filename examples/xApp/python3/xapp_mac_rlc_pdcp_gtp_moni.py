@@ -46,7 +46,7 @@ class MACCallback(ric.mac_cb):
 
                 for tbs_id in range(ue_context.num_tbs):
                     tbs_stats = ue_context.tbs_list[tbs_id]
-                    print('[xApp Monitor]: TBS = ' + str(tbs_stats.tbs) + ', timestamp = ' + str(ind.tstamp) + ', frame = ' + str(tbs_stats.frame) + ', slot = ' + str(tbs_stats.slot) + ', rnti = ' + str(ue_context.rnti) + ', latency = ' + str(tbs_stats.latency) + ', crc = ' + str(tbs_stats.crc_check))
+                    print('[xApp Monitor]: TBS = ' + str(tbs_stats[0]) + ', timestamp = ' + str(ind.tstamp) + ', frame = ' + str(tbs_stats[1]) + ', slot = ' + str(tbs_stats[2]) + ', rnti = ' + str(ue_context.rnti) + ', latency = ' + str(tbs_stats[3]) + ', crc = ' + str(tbs_stats[4]))
 
                 if (ue_id == 0):# and self.tbs != tbs):
                     #if (tbs > 10000):
