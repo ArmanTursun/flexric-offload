@@ -139,7 +139,7 @@ typedef struct
   int8_t phr; 
   
   uint8_t num_tbs;
-  tbs_stats_t *tbs_list[10];
+  tbs_stats_t tbs_list[10];
 
 } mac_ue_stats_impl_t;
 

@@ -186,8 +186,8 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
     //assert(dst.tbs_list != NULL && "Memory exhausted" );
     dst.num_tbs = src->num_tbs;
     for (int i = 0; i < src->num_tbs; i++){
-      tbs_stats_t* src_ind = src->tbs_list[i];
-      tbs_stats_t* dst_ind = dst.tbs_list[i];
+      tbs_stats_t* src_ind = &src->tbs_list[i];
+      tbs_stats_t* dst_ind = &dst.tbs_list[i];
       dst_ind->tbs = src_ind->tbs;
       dst_ind->frame = src_ind->frame;
       dst_ind->slot = src_ind->slot;
@@ -282,8 +282,8 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
         return false;
       }
       for (int i = 0; i < ue0->num_tbs; i++){
-        tbs_stats_t *ue0_ind = ue0->tbs_list[i];
-        tbs_stats_t *ue1_ind = ue1->tbs_list[i];
+        tbs_stats_t *ue0_ind = &ue0->tbs_list[i];
+        tbs_stats_t *ue1_ind = &ue1->tbs_list[i];
         if (
       	  ue0_ind->tbs != ue1_ind->tbs ||
       	  ue0_ind->frame != ue1_ind->frame ||
