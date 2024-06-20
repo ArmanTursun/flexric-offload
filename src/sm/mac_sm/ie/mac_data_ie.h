@@ -90,6 +90,15 @@ bool eq_mac_ind_hdr(mac_ind_hdr_t* m0, mac_ind_hdr_t* m1);
 
 typedef struct
 {
+  uint32_t tbs;
+  uint32_t frame;
+  uint32_t slot;
+  uint32_t latency;
+  uint32_t crc_check; 
+} tbs_stats_t;
+
+typedef struct
+{
   uint64_t dl_aggr_tbs;
   uint64_t ul_aggr_tbs;
   uint64_t dl_aggr_bytes_sdus;
@@ -128,6 +137,9 @@ typedef struct
   uint8_t dl_mcs2; 
   uint8_t ul_mcs2; 
   int8_t phr; 
+  
+  uint8_t num_tbs;
+  tbs_stats_t *tbs_list[10];
 
 } mac_ue_stats_impl_t;
 

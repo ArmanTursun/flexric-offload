@@ -181,6 +181,21 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
                               .slot = src->slot
                             }; 
 
+  if(src->num_tbs > 0){
+    //dst.tbs_list = calloc(src->num_tbs, sizeof(tbs_stats_t));
+    //assert(dst.tbs_list != NULL && "Memory exhausted" );
+    dst.num_tbs = src->num_tbs;
+    for (int i = 0; i < src->num_tbs; i++){
+      tbs_stats_t* src_ind = src->tbs_list[i];
+      tbs_stats_t* dst_ind = dst.tbs_list[i];
+      dst_ind->tbs = src_ind->tbs;
+      dst_ind->frame = src_ind->frame;
+      dst_ind->slot = src_ind->slot;
+      dst_ind->latency = src_ind->latency;
+      dst_ind->crc_check = src_ind->crc_check;
+    }
+  }
+  
   return dst;
 }
 
@@ -262,6 +277,22 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
         eq_float(ue0->pucch_snr, ue0->pucch_snr, 0.0000001) == false 
       )
       return false;
+    if(ue0->num_tbs > 0){
+      if (ue0->num_tbs != ue1->num_tbs){
+        return false;
+      }
+      for (int i = 0; i < ue0->num_tbs; i++){
+        tbs_stats_t *ue0_ind = ue0->tbs_list[i];
+        tbs_stats_t *ue1_ind = ue1->tbs_list[i];
+        if (
+      	  ue0_ind->tbs != ue1_ind->tbs ||
+      	  ue0_ind->frame != ue1_ind->frame ||
+      	  ue0_ind->slot != ue1_ind->slot ||
+      	  ue0_ind->latency != ue1_ind->latency ||
+      	  ue0_ind->crc_check != ue1_ind->crc_check)
+      	  return false;
+      }
+    }
   }
   return true;
 }
