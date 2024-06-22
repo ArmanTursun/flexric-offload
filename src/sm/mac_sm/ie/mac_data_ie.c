@@ -197,11 +197,16 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
     }
     */
     for (int j = 0; j < src->num_tbs; j++){
-      dst.tbs_list[j][0] = src->tbs_list[j][0];
-      dst.tbs_list[j][1] = src->tbs_list[j][1];
-      dst.tbs_list[j][2] = src->tbs_list[j][2];
-      dst.tbs_list[j][3] = src->tbs_list[j][3];
-      dst.tbs_list[j][4] = src->tbs_list[j][4];
+      //dst.tbs_list[j][0] = src->tbs_list[j][0];
+      //dst.tbs_list[j][1] = src->tbs_list[j][1];
+      //dst.tbs_list[j][2] = src->tbs_list[j][2];
+      //dst.tbs_list[j][3] = src->tbs_list[j][3];
+      //dst.tbs_list[j][4] = src->tbs_list[j][4];
+      dst.tbs[j] = src->tbs[j];
+      dst.tbs_frame[j] = src->tbs_frame[j];
+      dst.tbs_slot[j] = src->tbs_slot[j];
+      dst.tbs_latency[j] = src->tbs_latency[j];
+      dst.tbs_crc[j] = src->tbs_crc[j];
     }
   }
   
@@ -304,11 +309,18 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
         */
 
         if (
-          ue0->tbs_list[j][0] != ue1->tbs_list[j][0] ||
-          ue0->tbs_list[j][1] != ue1->tbs_list[j][1] ||
-          ue0->tbs_list[j][2] != ue1->tbs_list[j][2] ||
-          ue0->tbs_list[j][3] != ue1->tbs_list[j][3] ||
-          ue0->tbs_list[j][4] != ue1->tbs_list[j][4])
+          //ue0->tbs_list[j][0] != ue1->tbs_list[j][0] ||
+          //ue0->tbs_list[j][1] != ue1->tbs_list[j][1] ||
+          //ue0->tbs_list[j][2] != ue1->tbs_list[j][2] ||
+          //ue0->tbs_list[j][3] != ue1->tbs_list[j][3] ||
+          //ue0->tbs_list[j][4] != ue1->tbs_list[j][4])
+          
+          ue0->tbs[j] != ue1->tbs[j] ||
+          ue0->tbs_frame[j] != ue1->tbs_frame[j] ||
+          ue0->tbs_slot[j] != ue1->tbs_slot[j] ||
+          ue0->tbs_latency[j] != ue1->tbs_latency[j] ||
+          ue0->tbs_crc[j] != ue1->tbs_crc[j])
+          
           return false;
       }
     }
