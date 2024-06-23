@@ -196,7 +196,7 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
       dst_ind->crc_check = src_ind->crc_check;
     }
     */
-    for (int j = 0; j < src->num_tbs; j++){
+    for (uint32_t j = 0; j < src->num_tbs; j++){
       //dst.tbs_list[j][0] = src->tbs_list[j][0];
       //dst.tbs_list[j][1] = src->tbs_list[j][1];
       //dst.tbs_list[j][2] = src->tbs_list[j][2];
@@ -295,7 +295,7 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
       if (ue0->num_tbs != ue1->num_tbs){
         return false;
       }
-      for (int j = 0; j < ue0->num_tbs; j++){
+      for (uint32_t j = 0; j < ue0->num_tbs; j++){
         /*
         tbs_stats_t *ue0_ind = &ue0->tbs_list[i];
         tbs_stats_t *ue1_ind = &ue1->tbs_list[i];

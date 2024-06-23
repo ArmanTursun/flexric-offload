@@ -139,7 +139,7 @@ typedef struct
   uint8_t ul_mcs2; 
   int8_t phr; 
   
-  uint8_t num_tbs;
+  uint32_t num_tbs;
   //uint32_t tbs_list[10][5];
   uint32_t tbs[10];
   uint32_t tbs_frame[10];
