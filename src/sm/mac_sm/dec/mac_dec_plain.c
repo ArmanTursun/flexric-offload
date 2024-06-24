@@ -130,7 +130,7 @@ mac_ind_msg_t mac_dec_ind_msg_plain(size_t len, uint8_t const ind_msg[len])
     uint32_t ue_len = cal_ind_ue_msg_len_half(ind_ue_msg);
     memcpy(ind_ue_msg, ptr, ue_len );
     //ptr += sizeof( mac_ue_stats_impl_t); 
-    ptr += sizeof(ue_len); 
+    ptr += ue_len; 
 
     ind_ue_msg->tbs = calloc(ind_ue_msg->num_tbs, sizeof(tbs_stats_t));
     //tbs_stats_t* tbs = ind_ue_msg->tbs;
