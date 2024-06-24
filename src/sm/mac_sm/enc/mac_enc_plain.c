@@ -66,13 +66,13 @@ byte_array_t mac_enc_ind_hdr_plain(mac_ind_hdr_t const* ind_hdr)
 
 
 uint32_t cal_ind_ue_msg_len(mac_ue_stats_impl_t *ind_ue_msg){
-  uint32_t len = sizeof(uint64_t) * 8 + sizeof(float) * 4 + sizeof(uint32_t) * 12 + sizeof(uint16_t) * 2 + sizeof(uint8_t) * 5 + sizeof(int8_t) + sizeof(uint32_t) + sizeof(uint32_t) * ind_ue_msg->num_tbs * 5;
+  uint32_t len = sizeof(uint64_t) * 8 + sizeof(float) * 4 + sizeof(uint32_t) * 20 + sizeof(uint16_t) * 2 + sizeof(uint8_t) * 5 + sizeof(int8_t) + sizeof(uint32_t) + sizeof(uint32_t) * ind_ue_msg->num_tbs * 5;
   return len;
 }
 
 void fill_ind_ue_msg(void* ptr, mac_ue_stats_impl_t *ind_ue_msg)
 {
-  uint32_t len = sizeof(uint64_t) * 8 + sizeof(float) * 4 + sizeof(uint32_t) * 12 + sizeof(uint16_t) * 2 + sizeof(uint8_t) * 5 + sizeof(int8_t) + sizeof(uint32_t);
+  uint32_t len = sizeof(uint64_t) * 8 + sizeof(float) * 4 + sizeof(uint32_t) * 20 + sizeof(uint16_t) * 2 + sizeof(uint8_t) * 5 + sizeof(int8_t) + sizeof(uint32_t);
   memcpy(ptr, ind_ue_msg, len);
   ptr += len;
   memcpy(ptr, ind_ue_msg->tbs, sizeof(uint32_t) * ind_ue_msg->num_tbs);

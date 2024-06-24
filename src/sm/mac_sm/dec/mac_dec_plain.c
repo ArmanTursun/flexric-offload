@@ -69,20 +69,30 @@ mac_ind_msg_t mac_dec_ind_msg_plain(size_t len, uint8_t const ind_msg[len])
   
   for(uint32_t i = 0; i < ret.len_ue_stats; ++i){
     //memcpy(&ret.ue_stats[i], ptr, sizeof( mac_ue_stats_impl_t) );
-    uint32_t ue_len = sizeof(uint64_t) * 8 + sizeof(float) * 4 + sizeof(uint32_t) * 12 + sizeof(uint16_t) * 2 + sizeof(uint8_t) * 5 + sizeof(int8_t) + sizeof(uint32_t);
+    uint32_t ue_len = sizeof(uint64_t) * 8 + sizeof(float) * 4 + sizeof(uint32_t) * 20 + sizeof(uint16_t) * 2 + sizeof(uint8_t) * 5 + sizeof(int8_t) + sizeof(uint32_t);
     memcpy(&ret.ue_stats[i], ptr, ue_len );
     //ptr += sizeof( mac_ue_stats_impl_t); 
     ptr += sizeof(ue_len); 
 
     mac_ue_stats_impl_t *ind_ue_msg = &ret.ue_stats[i];
+
+    ind_ue_msg->tbs = calloc(ind_ue_msg->num_tbs, sizeof(uint32_t));
     memcpy(ind_ue_msg->tbs, ptr, sizeof(uint32_t) * ind_ue_msg->num_tbs);
     ptr += sizeof(uint32_t) * ind_ue_msg->num_tbs;
+
+    ind_ue_msg->tbs_frame = calloc(ind_ue_msg->num_tbs, sizeof(uint32_t));
     memcpy(ind_ue_msg->tbs_frame, ptr, sizeof(uint32_t) * ind_ue_msg->num_tbs);
     ptr += sizeof(uint32_t) * ind_ue_msg->num_tbs;
+
+    ind_ue_msg->tbs_slot = calloc(ind_ue_msg->num_tbs, sizeof(uint32_t));
     memcpy(ind_ue_msg->tbs_slot, ptr, sizeof(uint32_t) * ind_ue_msg->num_tbs);
     ptr += sizeof(uint32_t) * ind_ue_msg->num_tbs;
+
+    ind_ue_msg->tbs_latency = calloc(ind_ue_msg->num_tbs, sizeof(uint32_t));
     memcpy(ind_ue_msg->tbs_latency, ptr, sizeof(uint32_t) * ind_ue_msg->num_tbs);
     ptr += sizeof(uint32_t) * ind_ue_msg->num_tbs;
+
+    ind_ue_msg->tbs_crc = calloc(ind_ue_msg->num_tbs, sizeof(uint32_t));
     memcpy(ind_ue_msg->tbs_crc, ptr, sizeof(uint32_t) * ind_ue_msg->num_tbs);
     ptr += sizeof(uint32_t) * ind_ue_msg->num_tbs;
   }
