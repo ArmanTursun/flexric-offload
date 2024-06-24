@@ -146,8 +146,8 @@ typedef struct
   //uint32_t* tbs_slot;
   //uint32_t* tbs_latency;
   //uint32_t* tbs_crc;
-  uint32_t tbs_1[5];
-  uint32_t tbs_2[5];
+  //uint32_t tbs_1[5];
+  //uint32_t tbs_2[5];
   //uint32_t tbs_3[5];
   //uint32_t tbs_4[5];
   //uint32_t tbs_5[5];

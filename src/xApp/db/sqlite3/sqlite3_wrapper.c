@@ -386,8 +386,8 @@ int to_sql_string_mac_ue(global_e2_node_id_t const* id, mac_ue_stats_impl_t* sta
       "%u," // ul_harq[1]
       "%u," // ul_harq[2]
       "%u," // ul_harq[3]
-      "%u," // ulsch_errors
-      "%u," // tbs_num
+      "%u" // ulsch_errors
+      /*"%u," // tbs_num
       "%u," // tbs_1[0]
       "%u," // tbs_1[1]
       "%u," // tbs_1[2]
@@ -398,7 +398,7 @@ int to_sql_string_mac_ue(global_e2_node_id_t const* id, mac_ue_stats_impl_t* sta
       "%u," // tbs_2[2]
       "%u," // tbs_2[3]
       "%u"  // tbs_2[4]
-      /*"%u," // tbs_3[0]
+      "%u," // tbs_3[0]
       "%u," // tbs_3[1]
       "%u," // tbs_3[2]
       "%u," // tbs_3[3]
@@ -461,7 +461,7 @@ int to_sql_string_mac_ue(global_e2_node_id_t const* id, mac_ue_stats_impl_t* sta
       ,stats->ul_harq[2]
       ,stats->ul_harq[3]
       ,stats->ul_harq[4]
-      ,stats->num_tbs
+      /*,stats->num_tbs
       ,stats->tbs_1[0]
       ,stats->tbs_1[1]
       ,stats->tbs_1[2]
@@ -472,7 +472,7 @@ int to_sql_string_mac_ue(global_e2_node_id_t const* id, mac_ue_stats_impl_t* sta
       ,stats->tbs_2[2]
       ,stats->tbs_2[3]
       ,stats->tbs_2[4]
-      /*,stats->tbs_3[0]
+      ,stats->tbs_3[0]
       ,stats->tbs_3[1]
       ,stats->tbs_3[2]
       ,stats->tbs_3[3]

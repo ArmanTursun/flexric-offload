@@ -79,8 +79,8 @@ void to_string_mac_ue_stats(mac_ue_stats_impl_t* stats, int64_t tstamp, char* ou
         "ul_harq[1]=%u,"
         "ul_harq[2]=%u,"
         "ul_harq[3]=%u,"
-        "ulsch_errors=%u,"
-        "num_tbs=%u,"
+        "ulsch_errors=%u"
+        /*"num_tbs=%u,"
         "tbs_1[0]=%u,"
         "tbs_1[1]=%u,"
         "tbs_1[2]=%u,"
@@ -91,7 +91,7 @@ void to_string_mac_ue_stats(mac_ue_stats_impl_t* stats, int64_t tstamp, char* ou
         "tbs_2[2]=%u,"
         "tbs_2[3]=%u,"
         "tbs_2[4]=%u"
-        /*"tbs_3[0]=%u,"
+        "tbs_3[0]=%u,"
         "tbs_3[1]=%u,"
         "tbs_3[2]=%u,"
         "tbs_3[3]=%u,"
@@ -148,7 +148,7 @@ void to_string_mac_ue_stats(mac_ue_stats_impl_t* stats, int64_t tstamp, char* ou
         ,stats->ul_harq[2]
         ,stats->ul_harq[3]
         ,stats->ul_harq[4]
-        ,stats->num_tbs
+        /*,stats->num_tbs
         ,stats->tbs_1[4]
         ,stats->tbs_1[4]
         ,stats->tbs_1[4]
@@ -159,7 +159,7 @@ void to_string_mac_ue_stats(mac_ue_stats_impl_t* stats, int64_t tstamp, char* ou
         ,stats->tbs_2[4]
         ,stats->tbs_2[4]
         ,stats->tbs_2[4]
-        /*,stats->tbs_3[4]
+        ,stats->tbs_3[4]
         ,stats->tbs_3[4]
         ,stats->tbs_3[4]
         ,stats->tbs_3[4]

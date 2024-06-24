@@ -179,7 +179,7 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
                               .ul_harq[4] = src->ul_harq[4],
 
                               .num_tbs = src->num_tbs,
-                              .tbs_1[0] = src->tbs_1[0],
+/*                              .tbs_1[0] = src->tbs_1[0],
                               .tbs_1[1] = src->tbs_1[1],
                               .tbs_1[2] = src->tbs_1[2],
                               .tbs_1[3] = src->tbs_1[3],
@@ -190,7 +190,7 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
                               .tbs_2[2] = src->tbs_2[2],
                               .tbs_2[3] = src->tbs_2[3],
                               .tbs_2[4] = src->tbs_2[4],
-/*
+
                               .tbs_3[0] = src->tbs_3[0],
                               .tbs_3[1] = src->tbs_3[1],
                               .tbs_3[2] = src->tbs_3[2],
@@ -363,7 +363,7 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
         ue0->ul_harq[4] != ue1->ul_harq[4] ||
 
         ue0->num_tbs != ue1->num_tbs ||
-        ue0->tbs_1[0] != ue1->tbs_1[0] ||
+/*        ue0->tbs_1[0] != ue1->tbs_1[0] ||
         ue0->tbs_1[1] != ue1->tbs_1[1] ||
         ue0->tbs_1[2] != ue1->tbs_1[2] ||
         ue0->tbs_1[3] != ue1->tbs_1[3] ||
@@ -374,7 +374,7 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
         ue0->tbs_2[2] != ue1->tbs_2[2] ||
         ue0->tbs_2[3] != ue1->tbs_2[3] ||
         ue0->tbs_2[4] != ue1->tbs_2[4] ||
-/*
+
         ue0->tbs_3[0] != ue1->tbs_3[0] ||
         ue0->tbs_3[1] != ue1->tbs_3[1] ||
         ue0->tbs_3[2] != ue1->tbs_3[2] ||

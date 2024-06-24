@@ -43,13 +43,13 @@ class MACCallback(ric.mac_cb):
             for ue_id in range(len(ind.ue_stats)):
                 ue_context = ind.ue_stats[ue_id]
 
-                print('[xApp Monitor 1]: TBS = ' + str(ue_context.tbs_1[0]) + ', timestamp = ' + str(ind.tstamp) + ', frame = ' + str(ue_context.tbs_1[1]) + ', slot = ' + str(ue_context.tbs_1[2]) + ', rnti = ' + str(ue_context.rnti) + ', latency = ' + str(ue_context.tbs_1[3]) + ', crc = ' + str(ue_context.tbs_1[4]))
-                print('[xApp Monitor 1]: TBS = ' + str(ue_context.tbs_2[0]) + ', timestamp = ' + str(ind.tstamp) + ', frame = ' + str(ue_context.tbs_2[1]) + ', slot = ' + str(ue_context.tbs_2[2]) + ', rnti = ' + str(ue_context.rnti) + ', latency = ' + str(ue_context.tbs_2[3]) + ', crc = ' + str(ue_context.tbs_2[4]))
+                #print('[xApp Monitor 1]: TBS = ' + str(ue_context.tbs_1[0]) + ', timestamp = ' + str(ind.tstamp) + ', frame = ' + str(ue_context.tbs_1[1]) + ', slot = ' + str(ue_context.tbs_1[2]) + ', rnti = ' + str(ue_context.rnti) + ', latency = ' + str(ue_context.tbs_1[3]) + ', crc = ' + str(ue_context.tbs_1[4]))
+                #print('[xApp Monitor 1]: TBS = ' + str(ue_context.tbs_2[0]) + ', timestamp = ' + str(ind.tstamp) + ', frame = ' + str(ue_context.tbs_2[1]) + ', slot = ' + str(ue_context.tbs_2[2]) + ', rnti = ' + str(ue_context.rnti) + ', latency = ' + str(ue_context.tbs_2[3]) + ', crc = ' + str(ue_context.tbs_2[4]))
 
                 #tbs = ue_context.ul_curr_tbs
 
                 #tbs_num = ue_context.num_tbs
-                #print('num_tbs: ' + str(ue_context.num_tbs))
+                print('num_tbs: ' + str(ue_context.num_tbs))
                 #print('num dl_harq' + str(len(ue_context.dl_harq)))
                 #print('num ue_context.tbs' + str(len(ue_context.tbs)))
                 #for tbs_stats in ue_context.tbs:
