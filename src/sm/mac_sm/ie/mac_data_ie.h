@@ -141,11 +141,11 @@ typedef struct
   
   uint32_t num_tbs;
   //uint32_t tbs_list[10][5];
-  uint32_t tbs[10];
-  uint32_t tbs_frame[10];
-  uint32_t tbs_slot[10];
-  uint32_t tbs_latency[10];
-  uint32_t tbs_crc[10];
+  uint32_t* tbs;
+  uint32_t* tbs_frame;
+  uint32_t* tbs_slot;
+  uint32_t* tbs_latency;
+  uint32_t* tbs_crc;
 
 } mac_ue_stats_impl_t;
 

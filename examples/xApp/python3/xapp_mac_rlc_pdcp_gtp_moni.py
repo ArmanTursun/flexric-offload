@@ -46,11 +46,14 @@ class MACCallback(ric.mac_cb):
 
                 tbs_num = ue_context.num_tbs
                 #print('num_tbs: ' + str(ue_context.num_tbs))
-                for tbs_id in range(tbs_num):
+                #for tbs_id in range(tbs_num):
                     #tbs_stats = ue_context.tbs_list[tbs_id]
-                    print('[xApp Monitor]: TBS = ' + str(ue_context.tbs[tbs_id]) + ', timestamp = ' + str(ind.tstamp) + ', frame = ' + str(ue_context.tbs_frame[tbs_id]) + ', slot = ' + str(ue_context.tbs_slot[tbs_id]) + ', rnti = ' + str(ue_context.rnti) + ', latency = ' + str(ue_context.tbs_latency[tbs_id]) + ', crc = ' + str(ue_context.tbs_crc[tbs_id]))
+                    #print('[xApp Monitor]: TBS = ' + str(ue_context.tbs[tbs_id]) + ', timestamp = ' + str(ind.tstamp) + ', frame = ' + str(ue_context.tbs_frame[tbs_id]) + ', slot = ' + str(ue_context.tbs_slot[tbs_id]) + ', rnti = ' + str(ue_context.rnti) + ', latency = ' + str(ue_context.tbs_latency[tbs_id]) + ', crc = ' + str(ue_context.tbs_crc[tbs_id]))
                     #print('[xApp Monitor]: TBS = ' + str(tbs_stats[0]) + ', timestamp = ' + str(ind.tstamp) + ', frame = ' + str(tbs_stats[1]) + ', slot = ' + str(tbs_stats[2]) + ', rnti = ' + str(ue_context.rnti) + ', latency = ' + str(tbs_stats[3]) + ', crc = ' + str(tbs_stats[4]))
 
+                for tbs in ue_context.tbs:
+                    print('[xApp Monitor]: TBS = ' + str(tbs))
+                
                 if (ue_id == 0):# and self.tbs != tbs):
                     #if (tbs > 10000):
                         #self.ldpc_offload["offload"] = 1

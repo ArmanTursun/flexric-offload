@@ -180,11 +180,23 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
                               .frame = src->frame,
                               .slot = src->slot
                             }; 
-
+  
+  
   if(src->num_tbs > 0){
     //dst.tbs_list = calloc(src->num_tbs, sizeof(tbs_stats_t));
     //assert(dst.tbs_list != NULL && "Memory exhausted" );
     dst.num_tbs = src->num_tbs;
+
+    dst.tbs = calloc(dst.num_tbs, sizeof(uint32_t));
+    dst.tbs_frame = calloc(dst.num_tbs, sizeof(uint32_t));
+    dst.tbs_slot = calloc(dst.num_tbs, sizeof(uint32_t));
+    dst.tbs_latency = calloc(dst.num_tbs, sizeof(uint32_t));
+    dst.tbs_crc = calloc(dst.num_tbs, sizeof(uint32_t));
+
+    //dst.sched_name = malloc(src->len_sched_name, sizeof(uint32_t));
+    //assert(dst.sched_name != NULL && "memory exhausted");
+    //memcpy(dst.sched_name, src->sched_name, src->len_sched_name);
+
     /*
     for (int i = 0; i < src->num_tbs; i++){
       tbs_stats_t* src_ind = &src->tbs_list[i];
