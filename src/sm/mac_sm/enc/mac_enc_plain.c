@@ -121,13 +121,16 @@ uint32_t cal_ind_ue_msg_len(mac_ue_stats_impl_t *ind_ue_msg){
 
 }
 
-void fill_ind_ue_msg(void* ptr, mac_ue_stats_impl_t *ind_ue_msg)
+uint32_t fill_ind_ue_msg(void* ptr, mac_ue_stats_impl_t *ind_ue_msg)
 {
   uint32_t len = cal_ind_ue_msg_len(ind_ue_msg) - sizeof(tbs_stats_t) * ind_ue_msg->num_tbs;
+  uint32_t len_ptr = 0;
   memcpy(ptr, ind_ue_msg, len);
   ptr += len;
+  len_ptr += len;
   memcpy(ptr, ind_ue_msg->tbs, sizeof(tbs_stats_t) * ind_ue_msg->num_tbs);
   ptr += sizeof(tbs_stats_t) * ind_ue_msg->num_tbs;
+  len_ptr += sizeof(tbs_stats_t) * ind_ue_msg->num_tbs;
   
   //memcpy(ptr, ind_ue_msg->tbs_frame, sizeof(ind_ue_msg->tbs_frame));
   //ptr += sizeof(ind_ue_msg->tbs_frame);
@@ -137,6 +140,7 @@ void fill_ind_ue_msg(void* ptr, mac_ue_stats_impl_t *ind_ue_msg)
   //ptr += sizeof(ind_ue_msg->tbs_latency);
   //memcpy(ptr, ind_ue_msg->tbs_crc, sizeof(ind_ue_msg->tbs_crc));
   //ptr += sizeof(ind_ue_msg->tbs_crc);
+  return len_ptr;
 }
 
 byte_array_t mac_enc_ind_msg_plain(mac_ind_msg_t const* ind_msg)
@@ -149,6 +153,7 @@ byte_array_t mac_enc_ind_msg_plain(mac_ind_msg_t const* ind_msg)
   //                    + sizeof(ind_msg->tstamp); 
   
   uint32_t len = 0;
+  uint32_t len_ptr = 0;
   for(uint32_t i = 0; i < ind_msg->len_ue_stats; ++i){
     len += cal_ind_ue_msg_len(&ind_msg->ue_stats[i]);
   }
@@ -160,17 +165,20 @@ byte_array_t mac_enc_ind_msg_plain(mac_ind_msg_t const* ind_msg)
 
   memcpy(ba.buf, &ind_msg->len_ue_stats, sizeof(ind_msg->len_ue_stats));
   void* ptr = ba.buf + sizeof(ind_msg->len_ue_stats);
+  len_ptr += sizeof(ind_msg->len_ue_stats);
 
   for(uint32_t i = 0; i < ind_msg->len_ue_stats; ++i){
     //memcpy(ptr, &ind_msg->ue_stats[i], sizeof(ind_msg->ue_stats[0]));
-    fill_ind_ue_msg(ptr, &ind_msg->ue_stats[i]); 
+    len_ptr += fill_ind_ue_msg(ptr, &ind_msg->ue_stats[i]); 
     //ptr += sizeof(ind_msg->ue_stats[0]);
     //ptr += ue_len;
   }
 
   memcpy(ptr, &ind_msg->tstamp, sizeof(ind_msg->tstamp));
   ptr += sizeof(ind_msg->tstamp);
+  len_ptr += sizeof(ind_msg->tstamp);
 
+  printf("len = %u, len_ptr = %u \n", len, len_ptr);
   assert(ptr == ba.buf + len && "Data layout mismacth");
 
   ba.len = len;
