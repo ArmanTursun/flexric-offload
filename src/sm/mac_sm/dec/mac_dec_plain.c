@@ -120,6 +120,9 @@ mac_ind_msg_t mac_dec_ind_msg_plain(size_t len, uint8_t const ind_msg[len])
     ret.ue_stats = calloc(ret.len_ue_stats, sizeof(mac_ue_stats_impl_t));
     assert(ret.ue_stats != NULL && "Memory exhausted!");
   }
+
+  uint32_t len_temp = 0;
+  len_temp += sizeof(ret.len_ue_stats);
   
   void* ptr = (void*)&ind_msg[len_sizeof];
   
@@ -131,11 +134,13 @@ mac_ind_msg_t mac_dec_ind_msg_plain(size_t len, uint8_t const ind_msg[len])
     memcpy(ind_ue_msg, ptr, ue_len );
     //ptr += sizeof( mac_ue_stats_impl_t); 
     ptr += ue_len; 
+    len_temp += ue_len;
 
     ind_ue_msg->tbs = calloc(ind_ue_msg->num_tbs, sizeof(tbs_stats_t));
     //tbs_stats_t* tbs = ind_ue_msg->tbs;
     memcpy(ind_ue_msg->tbs, ptr, sizeof(tbs_stats_t) * ind_ue_msg->num_tbs);
     ptr += sizeof(tbs_stats_t) * ind_ue_msg->num_tbs;
+    len_temp += sizeof(tbs_stats_t) * ind_ue_msg->num_tbs;
 
 /*
     mac_ue_stats_impl_t *ind_ue_msg = &ret.ue_stats[i];
@@ -163,6 +168,8 @@ mac_ind_msg_t mac_dec_ind_msg_plain(size_t len, uint8_t const ind_msg[len])
   }
 
   memcpy(&ret.tstamp, ptr, sizeof(ret.tstamp));
+  len_temp += sizeof(ret.tstamp);
+  //printf("len = %u, len_ptr = %u \n", len, len_temp);
 
   ptr += sizeof(ret.tstamp);
   assert(ptr == ind_msg + len && "data layout mismacth");
