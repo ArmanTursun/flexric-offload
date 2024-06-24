@@ -183,31 +183,31 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
   
   
   if(src->num_tbs > 0){
-    //dst.tbs_list = calloc(src->num_tbs, sizeof(tbs_stats_t));
+    dst.tbs = calloc(src->num_tbs, sizeof(tbs_stats_t));
     //assert(dst.tbs_list != NULL && "Memory exhausted" );
     dst.num_tbs = src->num_tbs;
 
-    dst.tbs = calloc(dst.num_tbs, sizeof(uint32_t));
-    dst.tbs_frame = calloc(dst.num_tbs, sizeof(uint32_t));
-    dst.tbs_slot = calloc(dst.num_tbs, sizeof(uint32_t));
-    dst.tbs_latency = calloc(dst.num_tbs, sizeof(uint32_t));
-    dst.tbs_crc = calloc(dst.num_tbs, sizeof(uint32_t));
+    //dst.tbs = calloc(dst.num_tbs, sizeof(uint32_t));
+    //dst.tbs_frame = calloc(dst.num_tbs, sizeof(uint32_t));
+    //dst.tbs_slot = calloc(dst.num_tbs, sizeof(uint32_t));
+    //dst.tbs_latency = calloc(dst.num_tbs, sizeof(uint32_t));
+    //dst.tbs_crc = calloc(dst.num_tbs, sizeof(uint32_t));
 
     //dst.sched_name = malloc(src->len_sched_name, sizeof(uint32_t));
     //assert(dst.sched_name != NULL && "memory exhausted");
     //memcpy(dst.sched_name, src->sched_name, src->len_sched_name);
 
-    /*
+    
     for (int i = 0; i < src->num_tbs; i++){
-      tbs_stats_t* src_ind = &src->tbs_list[i];
-      tbs_stats_t* dst_ind = &dst.tbs_list[i];
+      tbs_stats_t* src_ind = &src->tbs[i];
+      tbs_stats_t* dst_ind = &dst.tbs[i];
       dst_ind->tbs = src_ind->tbs;
       dst_ind->frame = src_ind->frame;
       dst_ind->slot = src_ind->slot;
       dst_ind->latency = src_ind->latency;
-      dst_ind->crc_check = src_ind->crc_check;
+      dst_ind->crc = src_ind->crc;
     }
-    */
+    /*
     for (uint32_t j = 0; j < src->num_tbs; j++){
       //dst.tbs_list[j][0] = src->tbs_list[j][0];
       //dst.tbs_list[j][1] = src->tbs_list[j][1];
@@ -220,6 +220,7 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
       dst.tbs_latency[j] = src->tbs_latency[j];
       dst.tbs_crc[j] = src->tbs_crc[j];
     }
+    */
   }
   
   return dst;
@@ -308,18 +309,18 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
         return false;
       }
       for (uint32_t j = 0; j < ue0->num_tbs; j++){
-        /*
-        tbs_stats_t *ue0_ind = &ue0->tbs_list[i];
-        tbs_stats_t *ue1_ind = &ue1->tbs_list[i];
+        
+        tbs_stats_t *ue0_ind = &ue0->tbs[i];
+        tbs_stats_t *ue1_ind = &ue1->tbs[i];
         if (
       	  ue0_ind->tbs != ue1_ind->tbs ||
       	  ue0_ind->frame != ue1_ind->frame ||
       	  ue0_ind->slot != ue1_ind->slot ||
       	  ue0_ind->latency != ue1_ind->latency ||
-      	  ue0_ind->crc_check != ue1_ind->crc_check)
+      	  ue0_ind->crc != ue1_ind->crc)
       	  return false;
-        */
-
+        
+        /*
         if (
           //ue0->tbs_list[j][0] != ue1->tbs_list[j][0] ||
           //ue0->tbs_list[j][1] != ue1->tbs_list[j][1] ||
@@ -332,7 +333,7 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
           ue0->tbs_slot[j] != ue1->tbs_slot[j] ||
           ue0->tbs_latency[j] != ue1->tbs_latency[j] ||
           ue0->tbs_crc[j] != ue1->tbs_crc[j])
-          
+        */  
           return false;
       }
     }

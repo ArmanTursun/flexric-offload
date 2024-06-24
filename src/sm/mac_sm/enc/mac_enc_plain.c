@@ -66,25 +66,77 @@ byte_array_t mac_enc_ind_hdr_plain(mac_ind_hdr_t const* ind_hdr)
 
 
 uint32_t cal_ind_ue_msg_len(mac_ue_stats_impl_t *ind_ue_msg){
-  uint32_t len = sizeof(uint64_t) * 8 + sizeof(float) * 4 + sizeof(uint32_t) * 20 + sizeof(uint16_t) * 2 + sizeof(uint8_t) * 5 + sizeof(int8_t) + sizeof(uint32_t) + sizeof(uint32_t) * ind_ue_msg->num_tbs * 5;
+  //uint32_t len = sizeof(uint64_t) * 8 + sizeof(float) * 4 + sizeof(uint32_t) * 20 + sizeof(uint16_t) * 2 + sizeof(uint8_t) * 5 + sizeof(int8_t) + sizeof(uint32_t) + sizeof(uint32_t) * ind_ue_msg->num_tbs * 5;
+  //return len;
+  uint32_t len = 0;
+
+  len += sizeof(ind_ue_msg->dl_aggr_tbs);
+  len += sizeof(ind_ue_msg->ul_aggr_tbs);
+  len += sizeof(ind_ue_msg->dl_aggr_bytes_sdus);
+  len += sizeof(ind_ue_msg->ul_aggr_bytes_sdus);
+  len += sizeof(ind_ue_msg->dl_curr_tbs);
+  len += sizeof(ind_ue_msg->ul_curr_tbs);
+  len += sizeof(ind_ue_msg->dl_sched_rb);
+  len += sizeof(ind_ue_msg->ul_sched_rb);
+ 
+  len += sizeof(ind_ue_msg->pusch_snr); //: float = -64;
+  len += sizeof(ind_ue_msg->pucch_snr); //: float = -64;
+
+  len += sizeof(ind_ue_msg->dl_bler);
+  len += sizeof(ind_ue_msg->ul_bler);
+
+  len += sizeof(ind_ue_msg->dl_harq);
+  len += sizeof(ind_ue_msg->ul_harq);
+  len += sizeof(ind_ue_msg->dl_num_harq);
+  len += sizeof(ind_ue_msg->ul_num_harq);
+
+  len += sizeof(ind_ue_msg->rnti);
+  len += sizeof(ind_ue_msg->dl_aggr_prb); 
+  len += sizeof(ind_ue_msg->ul_aggr_prb);
+  len += sizeof(ind_ue_msg->dl_aggr_sdus);
+  len += sizeof(ind_ue_msg->ul_aggr_sdus);
+  len += sizeof(ind_ue_msg->dl_aggr_retx_prb);
+  len += sizeof(ind_ue_msg->ul_aggr_retx_prb);
+
+  len += sizeof(ind_ue_msg->bsr);
+  len += sizeof(ind_ue_msg->frame);
+  len += sizeof(ind_ue_msg->slot);
+
+  len += sizeof(ind_ue_msg->wb_cqi); 
+  len += sizeof(ind_ue_msg->dl_mcs1);
+  len += sizeof(ind_ue_msg->ul_mcs1);
+  len += sizeof(ind_ue_msg->dl_mcs2); 
+  len += sizeof(ind_ue_msg->ul_mcs2); 
+  len += sizeof(ind_ue_msg->phr); 
+  
+  len += sizeof(ind_ue_msg->num_tbs);
+  //len += sizeof(ind_ue_msg->tbs);
+  //len += sizeof(ind_ue_msg->tbs_frame);
+  //len += sizeof(ind_ue_msg->tbs_slot);
+  //len += sizeof(ind_ue_msg->tbs_latency);
+  //len += sizeof(ind_ue_msg->tbs_crc);
+  len += sizeof(tbs_stats_t) * ind_ue_msg->num_tbs;
+
   return len;
+
 }
 
 void fill_ind_ue_msg(void* ptr, mac_ue_stats_impl_t *ind_ue_msg)
 {
-  uint32_t len = sizeof(uint64_t) * 8 + sizeof(float) * 4 + sizeof(uint32_t) * 20 + sizeof(uint16_t) * 2 + sizeof(uint8_t) * 5 + sizeof(int8_t) + sizeof(uint32_t);
+  uint32_t len = cal_ind_ue_msg_len(ind_ue_msg) - sizeof(tbs_stats_t) * ind_ue_msg->num_tbs;
   memcpy(ptr, ind_ue_msg, len);
   ptr += len;
-  memcpy(ptr, ind_ue_msg->tbs, sizeof(uint32_t) * ind_ue_msg->num_tbs);
-  ptr += sizeof(uint32_t) * ind_ue_msg->num_tbs;
-  memcpy(ptr, ind_ue_msg->tbs_frame, sizeof(uint32_t) * ind_ue_msg->num_tbs);
-  ptr += sizeof(uint32_t) * ind_ue_msg->num_tbs;
-  memcpy(ptr, ind_ue_msg->tbs_slot, sizeof(uint32_t) * ind_ue_msg->num_tbs);
-  ptr += sizeof(uint32_t) * ind_ue_msg->num_tbs;
-  memcpy(ptr, ind_ue_msg->tbs_latency, sizeof(uint32_t) * ind_ue_msg->num_tbs);
-  ptr += sizeof(uint32_t) * ind_ue_msg->num_tbs;
-  memcpy(ptr, ind_ue_msg->tbs_crc, sizeof(uint32_t) * ind_ue_msg->num_tbs);
-  ptr += sizeof(uint32_t) * ind_ue_msg->num_tbs;
+  memcpy(ptr, ind_ue_msg->tbs, sizeof(tbs_stats_t) * ind_ue_msg->num_tbs);
+  ptr += sizeof(tbs_stats_t) * ind_ue_msg->num_tbs;
+  
+  //memcpy(ptr, ind_ue_msg->tbs_frame, sizeof(ind_ue_msg->tbs_frame));
+  //ptr += sizeof(ind_ue_msg->tbs_frame);
+  //memcpy(ptr, ind_ue_msg->tbs_slot, sizeof(ind_ue_msg->tbs_slot));
+  //ptr += sizeof(ind_ue_msg->tbs_slot);
+  //memcpy(ptr, ind_ue_msg->tbs_latency, sizeof(ind_ue_msg->tbs_latency));
+  //ptr += sizeof(ind_ue_msg->tbs_latency);
+  //memcpy(ptr, ind_ue_msg->tbs_crc, sizeof(ind_ue_msg->tbs_crc));
+  //ptr += sizeof(ind_ue_msg->tbs_crc);
 }
 
 byte_array_t mac_enc_ind_msg_plain(mac_ind_msg_t const* ind_msg)
