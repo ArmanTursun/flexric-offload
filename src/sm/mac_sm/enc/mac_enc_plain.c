@@ -153,7 +153,7 @@ byte_array_t mac_enc_ind_msg_plain(mac_ind_msg_t const* ind_msg)
   //                    + sizeof(ind_msg->tstamp); 
   
   uint32_t len = 0;
-  uint32_t len_ptr = 0;
+  //uint32_t len_ptr = 0;
   for(uint32_t i = 0; i < ind_msg->len_ue_stats; ++i){
     len += cal_ind_ue_msg_len(&ind_msg->ue_stats[i]);
   }
@@ -162,22 +162,23 @@ byte_array_t mac_enc_ind_msg_plain(mac_ind_msg_t const* ind_msg)
 
   ba.buf = calloc(1, len); 
   assert(ba.buf != NULL);
+  void* ptr = ba.buf;
 
   memcpy(ba.buf, &ind_msg->len_ue_stats, sizeof(ind_msg->len_ue_stats));
-  void* ptr = ba.buf + sizeof(ind_msg->len_ue_stats);
-  len_ptr += sizeof(ind_msg->len_ue_stats);
+  ptr += sizeof(ind_msg->len_ue_stats);
+  //len_ptr += sizeof(ind_msg->len_ue_stats);
 
   for(uint32_t i = 0; i < ind_msg->len_ue_stats; ++i){
     //memcpy(ptr, &ind_msg->ue_stats[i], sizeof(ind_msg->ue_stats[0]));
-    len_ptr += fill_ind_ue_msg(ptr, &ind_msg->ue_stats[i]); 
+    ptr += fill_ind_ue_msg(ptr, &ind_msg->ue_stats[i]); 
     //ptr += sizeof(ind_msg->ue_stats[0]);
     //ptr += ue_len;
-    ptr += len_ptr;
+    //ptr += len_ptr;
   }
 
   memcpy(ptr, &ind_msg->tstamp, sizeof(ind_msg->tstamp));
   ptr += sizeof(ind_msg->tstamp);
-  len_ptr += sizeof(ind_msg->tstamp);
+  //len_ptr += sizeof(ind_msg->tstamp);
 
   //printf("len = %u, len_ptr = %u \n", len, len_ptr);
   assert(ptr == ba.buf + len && "Data layout mismacth");
