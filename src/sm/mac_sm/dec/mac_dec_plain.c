@@ -127,7 +127,7 @@ mac_ind_msg_t mac_dec_ind_msg_plain(size_t len, uint8_t const ind_msg[len])
   void* ptr = (void*)&ind_msg[len_sizeof];
   
   for(uint32_t i = 0; i < ret.len_ue_stats; ++i){
-    mac_ue_stats_impl_t *ind_ue_msg = &ret.ue_stats[i];
+    //mac_ue_stats_impl_t *ind_ue_msg = &ret.ue_stats[i];
     memcpy(&ret.ue_stats[i], ptr, sizeof( mac_ue_stats_impl_t) );
     //uint32_t ue_len = sizeof(uint64_t) * 8 + sizeof(float) * 4 + sizeof(uint32_t) * 20 + sizeof(uint16_t) * 2 + sizeof(uint8_t) * 5 + sizeof(int8_t) + sizeof(uint32_t);
     //uint32_t ue_len = cal_ind_ue_msg_len_half(ind_ue_msg);
