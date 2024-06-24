@@ -121,6 +121,7 @@ uint32_t cal_ind_ue_msg_len(mac_ue_stats_impl_t *ind_ue_msg){
 
 }
 
+/*
 uint32_t fill_ind_ue_msg(void* ptr, mac_ue_stats_impl_t *ind_ue_msg)
 {
   uint32_t len = cal_ind_ue_msg_len(ind_ue_msg) - sizeof(tbs_stats_t) * ind_ue_msg->num_tbs;
@@ -142,23 +143,23 @@ uint32_t fill_ind_ue_msg(void* ptr, mac_ue_stats_impl_t *ind_ue_msg)
   //ptr += sizeof(ind_ue_msg->tbs_crc);
   return len_ptr;
 }
-
+*/
 byte_array_t mac_enc_ind_msg_plain(mac_ind_msg_t const* ind_msg)
 {
   assert(ind_msg != NULL);
 
   byte_array_t ba = {0};
-  //const uint32_t len = sizeof(ind_msg->len_ue_stats) 
-  //                    + sizeof(mac_ue_stats_impl_t) * ind_msg->len_ue_stats
-  //                    + sizeof(ind_msg->tstamp); 
+  const uint32_t len = sizeof(ind_msg->len_ue_stats) 
+                      + sizeof(mac_ue_stats_impl_t) * ind_msg->len_ue_stats
+                      + sizeof(ind_msg->tstamp); 
   
-  uint32_t len = 0;
+  //uint32_t len = 0;
   //uint32_t len_ptr = 0;
-  for(uint32_t i = 0; i < ind_msg->len_ue_stats; ++i){
-    len += cal_ind_ue_msg_len(&ind_msg->ue_stats[i]);
-  }
-  len += sizeof(ind_msg->len_ue_stats);
-  len += sizeof(ind_msg->tstamp);
+  //for(uint32_t i = 0; i < ind_msg->len_ue_stats; ++i){
+  //  len += cal_ind_ue_msg_len(&ind_msg->ue_stats[i]);
+  //}
+  //len += sizeof(ind_msg->len_ue_stats);
+  //len += sizeof(ind_msg->tstamp);
 
   ba.buf = calloc(1, len); 
   assert(ba.buf != NULL);
@@ -169,9 +170,9 @@ byte_array_t mac_enc_ind_msg_plain(mac_ind_msg_t const* ind_msg)
   //len_ptr += sizeof(ind_msg->len_ue_stats);
 
   for(uint32_t i = 0; i < ind_msg->len_ue_stats; ++i){
-    //memcpy(ptr, &ind_msg->ue_stats[i], sizeof(ind_msg->ue_stats[0]));
-    ptr += fill_ind_ue_msg(ptr, &ind_msg->ue_stats[i]); 
-    //ptr += sizeof(ind_msg->ue_stats[0]);
+    memcpy(ptr, &ind_msg->ue_stats[i], sizeof(ind_msg->ue_stats[0]));
+    //ptr += fill_ind_ue_msg(ptr, &ind_msg->ue_stats[i]); 
+    ptr += sizeof(ind_msg->ue_stats[0]);
     //ptr += ue_len;
     //ptr += len_ptr;
   }

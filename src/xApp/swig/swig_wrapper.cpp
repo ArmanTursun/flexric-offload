@@ -93,6 +93,57 @@ std::vector<E2Node> conn_e2_nodes(void)
 static 
 mac_cb* hndlr_mac_cb; 
 
+/*
+swig_mac_ue_stats_impl_t cp_ue_stats_half(mac_ue_stats_impl_t* src){
+  swig_mac_ue_stats_impl_t dst;
+  dst.dl_aggr_tbs = src->dl_aggr_tbs;
+  dst.ul_aggr_tbs = src->ul_aggr_tbs;
+  dst.dl_aggr_bytes_sdus = src->dl_aggr_bytes_sdus;
+  dst.ul_aggr_bytes_sdus = src->ul_aggr_bytes_sdus;
+  dst.dl_curr_tbs = src->dl_curr_tbs;
+  dst.ul_curr_tbs = src->ul_curr_tbs;
+  dst.dl_sched_rb = src->dl_sched_rb;
+  dst.ul_sched_rb = src->ul_sched_rb;
+
+  dst.pusch_snr = src->pusch_snr; //: float = -64;
+  dst.pucch_snr = src->pucch_snr; //: float = -64;
+
+  dst.rnti = src->rnti;
+  dst.dl_aggr_prb = src->dl_aggr_prb; 
+  dst.ul_aggr_prb = src->ul_aggr_prb;
+  dst.dl_aggr_sdus = src->dl_aggr_sdus;
+  dst.ul_aggr_sdus = src->ul_aggr_sdus;
+  dst.dl_aggr_retx_prb = src->dl_aggr_retx_prb;
+  dst.ul_aggr_retx_prb = src->ul_aggr_retx_prb;
+
+  dst.wb_cqi = src->wb_cqi;
+  dst.dl_mcs1 = src->dl_mcs1;
+  dst.ul_mcs1 = src->ul_mcs1;
+  dst.dl_mcs2 = src->dl_mcs2; 
+  dst.ul_mcs2 = src->ul_mcs2; 
+  dst.phr = src->phr;
+  dst.bsr = src->bsr;
+  dst.dl_bler = src->dl_bler;
+  dst.ul_bler = src->ul_bler;
+  dst.dl_num_harq = src->dl_num_harq;
+  dst.dl_harq[0] = src->dl_harq[0];
+  dst.dl_harq[1] = src->dl_harq[1];
+  dst.dl_harq[2] = src->dl_harq[2];
+  dst.dl_harq[3] = src->dl_harq[3];
+  dst.dl_harq[4] = src->dl_harq[4];
+  dst.ul_num_harq = src->ul_num_harq;
+  dst.ul_harq[0] = src->ul_harq[0];
+  dst.ul_harq[1] = src->ul_harq[1];
+  dst.ul_harq[2] = src->ul_harq[2];
+  dst.ul_harq[3] = src->ul_harq[3];
+  dst.ul_harq[4] = src->ul_harq[4];
+  dst.frame = src->frame;
+  dst.slot = src->slot;
+  dst.num_tbs = src->num_tbs;
+  return dst;
+}
+*/
+
 static
 void sm_cb_mac(sm_ag_if_rd_t const* rd)
 {
@@ -107,8 +158,23 @@ void sm_cb_mac(sm_ag_if_rd_t const* rd)
   ind.tstamp = data->msg.tstamp;
 
   for(uint32_t i = 0; i < data->msg.len_ue_stats; ++i){
+      //swig_mac_ue_stats_impl_t tmp = cp_ue_stats_half(&data->msg.ue_stats[i]);
       mac_ue_stats_impl_t tmp = cp_mac_ue_stats_impl(&data->msg.ue_stats[i]) ;
+     /* mac_ue_stats_impl_t* src = &data->msg.ue_stats[i];
+      for (uint32_t j = 0; j < tmp.num_tbs; j++){
+        tbs_stats_t tbs_tmp;
+        tbs_stats_t* tbs_src = &src->tbs[j];
+        tbs_tmp.tbs = tbs_src->tbs;
+        tbs_tmp.frame = tbs_src->frame;
+        tbs_tmp.slot = tbs_src->slot;
+        tbs_tmp.latency = tbs_src->latency;
+        tbs_tmp.crc = tbs_src->crc;
+        tmp.tbs.emplace_back(tbs_tmp);
+      }
+      */
+      //cp_ue_stats();
       ind.ue_stats.emplace_back(tmp);
+      //ind.ue_stats.emplace_back(tmp);
   }
 
 #ifdef XAPP_LANG_PYTHON

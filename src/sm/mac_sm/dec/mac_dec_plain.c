@@ -121,26 +121,26 @@ mac_ind_msg_t mac_dec_ind_msg_plain(size_t len, uint8_t const ind_msg[len])
     assert(ret.ue_stats != NULL && "Memory exhausted!");
   }
 
-  uint32_t len_temp = 0;
-  len_temp += sizeof(ret.len_ue_stats);
+  //uint32_t len_temp = 0;
+  //len_temp += sizeof(ret.len_ue_stats);
   
   void* ptr = (void*)&ind_msg[len_sizeof];
   
   for(uint32_t i = 0; i < ret.len_ue_stats; ++i){
     mac_ue_stats_impl_t *ind_ue_msg = &ret.ue_stats[i];
-    //memcpy(&ret.ue_stats[i], ptr, sizeof( mac_ue_stats_impl_t) );
+    memcpy(&ret.ue_stats[i], ptr, sizeof( mac_ue_stats_impl_t) );
     //uint32_t ue_len = sizeof(uint64_t) * 8 + sizeof(float) * 4 + sizeof(uint32_t) * 20 + sizeof(uint16_t) * 2 + sizeof(uint8_t) * 5 + sizeof(int8_t) + sizeof(uint32_t);
-    uint32_t ue_len = cal_ind_ue_msg_len_half(ind_ue_msg);
-    memcpy(ind_ue_msg, ptr, ue_len );
-    //ptr += sizeof( mac_ue_stats_impl_t); 
-    ptr += ue_len; 
-    len_temp += ue_len;
+    //uint32_t ue_len = cal_ind_ue_msg_len_half(ind_ue_msg);
+    //memcpy(ind_ue_msg, ptr, ue_len );
+    ptr += sizeof( mac_ue_stats_impl_t); 
+    //ptr += ue_len; 
+    //len_temp += ue_len;
 
-    ind_ue_msg->tbs = calloc(ind_ue_msg->num_tbs, sizeof(tbs_stats_t));
+    //ind_ue_msg->tbs = calloc(ind_ue_msg->num_tbs, sizeof(tbs_stats_t));
     //tbs_stats_t* tbs = ind_ue_msg->tbs;
-    memcpy(ind_ue_msg->tbs, ptr, sizeof(tbs_stats_t) * ind_ue_msg->num_tbs);
-    ptr += sizeof(tbs_stats_t) * ind_ue_msg->num_tbs;
-    len_temp += sizeof(tbs_stats_t) * ind_ue_msg->num_tbs;
+   // memcpy(ind_ue_msg->tbs, ptr, sizeof(tbs_stats_t) * ind_ue_msg->num_tbs);
+    //ptr += sizeof(tbs_stats_t) * ind_ue_msg->num_tbs;
+    //len_temp += sizeof(tbs_stats_t) * ind_ue_msg->num_tbs;
 
 /*
     mac_ue_stats_impl_t *ind_ue_msg = &ret.ue_stats[i];
@@ -168,7 +168,7 @@ mac_ind_msg_t mac_dec_ind_msg_plain(size_t len, uint8_t const ind_msg[len])
   }
 
   memcpy(&ret.tstamp, ptr, sizeof(ret.tstamp));
-  len_temp += sizeof(ret.tstamp);
+  //len_temp += sizeof(ret.tstamp);
   //printf("len = %u, len_ptr = %u \n", len, len_temp);
 
   ptr += sizeof(ret.tstamp);

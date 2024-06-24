@@ -42,6 +42,67 @@ enum class Interval {
 // MAC SM   
 /////////////////////////////////////
 
+//typedef struct
+//{
+//  uint32_t tbs;
+//  uint32_t frame;
+//  uint32_t slot;
+//  uint32_t latency;
+//  uint32_t crc; 
+//} swig_tbs_stats_t;
+
+/*
+typedef struct{
+  uint64_t dl_aggr_tbs;
+  uint64_t ul_aggr_tbs;
+  uint64_t dl_aggr_bytes_sdus;
+  uint64_t ul_aggr_bytes_sdus;
+  uint64_t dl_curr_tbs;
+  uint64_t ul_curr_tbs;
+  uint64_t dl_sched_rb;
+  uint64_t ul_sched_rb;
+ 
+  float pusch_snr; //: float = -64;
+  float pucch_snr; //: float = -64;
+
+  float dl_bler;
+  float ul_bler;
+
+  uint32_t dl_harq[5];
+  uint32_t ul_harq[5];
+  //std::vector<uint32_t> dl_harq;
+  //std::vector<uint32_t> ul_harq;
+  uint32_t dl_num_harq;
+  uint32_t ul_num_harq;
+
+  uint32_t rnti;
+  uint32_t dl_aggr_prb; 
+  uint32_t ul_aggr_prb;
+  uint32_t dl_aggr_sdus;
+  uint32_t ul_aggr_sdus;
+  uint32_t dl_aggr_retx_prb;
+  uint32_t ul_aggr_retx_prb;
+
+  uint32_t bsr;
+  uint16_t frame;
+  uint16_t slot;
+
+  uint8_t wb_cqi; 
+  uint8_t dl_mcs1;
+  uint8_t ul_mcs1;
+  uint8_t dl_mcs2; 
+  uint8_t ul_mcs2; 
+  int8_t phr; 
+  
+  uint32_t num_tbs;
+  //std::vector<tbs_stats_t> tbs;
+  //uint32_t* tbs;
+  //uint32_t* tbs_frame;
+  //uint32_t* tbs_slot;
+  //uint32_t* tbs_latency;
+  //uint32_t* tbs_crc;
+} swig_mac_ue_stats_impl_t;
+*/
 struct swig_mac_ind_msg_t{
   std::vector<mac_ue_stats_impl_t> ue_stats;
   int64_t tstamp;

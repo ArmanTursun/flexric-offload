@@ -140,12 +140,22 @@ typedef struct
   int8_t phr; 
   
   uint32_t num_tbs;
-  tbs_stats_t* tbs;
+  //tbs_stats_t* tbs;
   //uint32_t* tbs;
   //uint32_t* tbs_frame;
   //uint32_t* tbs_slot;
   //uint32_t* tbs_latency;
   //uint32_t* tbs_crc;
+  uint32_t tbs_1[5];
+  uint32_t tbs_2[5];
+  uint32_t tbs_3[5];
+  uint32_t tbs_4[5];
+  uint32_t tbs_5[5];
+  uint32_t tbs_6[5];
+  uint32_t tbs_7[5];
+  uint32_t tbs_8[5];
+  uint32_t tbs_9[5];
+  uint32_t tbs_10[5];
 
 } mac_ue_stats_impl_t;
 

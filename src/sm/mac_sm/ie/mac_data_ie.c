@@ -177,11 +177,72 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
                               .ul_harq[2] = src->ul_harq[2],
                               .ul_harq[3] = src->ul_harq[3],
                               .ul_harq[4] = src->ul_harq[4],
+
+                              .tbs_1[0] = src->tbs_1[0],
+                              .tbs_1[1] = src->tbs_1[1],
+                              .tbs_1[2] = src->tbs_1[2],
+                              .tbs_1[3] = src->tbs_1[3],
+                              .tbs_1[4] = src->tbs_1[4],
+
+                              .tbs_2[0] = src->tbs_2[0],
+                              .tbs_2[1] = src->tbs_2[1],
+                              .tbs_2[2] = src->tbs_2[2],
+                              .tbs_2[3] = src->tbs_2[3],
+                              .tbs_2[4] = src->tbs_2[4],
+
+                              .tbs_3[0] = src->tbs_3[0],
+                              .tbs_3[1] = src->tbs_3[1],
+                              .tbs_3[2] = src->tbs_3[2],
+                              .tbs_3[3] = src->tbs_3[3],
+                              .tbs_3[4] = src->tbs_3[4],
+
+                              .tbs_4[0] = src->tbs_4[0],
+                              .tbs_4[1] = src->tbs_4[1],
+                              .tbs_4[2] = src->tbs_4[2],
+                              .tbs_4[3] = src->tbs_4[3],
+                              .tbs_4[4] = src->tbs_4[4],
+
+                              .tbs_5[0] = src->tbs_5[0],
+                              .tbs_5[1] = src->tbs_5[1],
+                              .tbs_5[2] = src->tbs_5[2],
+                              .tbs_5[3] = src->tbs_5[3],
+                              .tbs_5[4] = src->tbs_5[4],
+/*
+                              .tbs_6[0] = src->tbs_6[0],
+                              .tbs_6[1] = src->tbs_6[1],
+                              .tbs_6[2] = src->tbs_6[2],
+                              .tbs_6[3] = src->tbs_6[3],
+                              .tbs_6[4] = src->tbs_6[4],
+
+                              .tbs_7[0] = src->tbs_7[0],
+                              .tbs_7[1] = src->tbs_7[1],
+                              .tbs_7[2] = src->tbs_7[2],
+                              .tbs_7[3] = src->tbs_7[3],
+                              .tbs_7[4] = src->tbs_7[4],
+
+                              .tbs_8[0] = src->tbs_8[0],
+                              .tbs_8[1] = src->tbs_8[1],
+                              .tbs_8[2] = src->tbs_8[2],
+                              .tbs_8[3] = src->tbs_8[3],
+                              .tbs_8[4] = src->tbs_8[4],
+
+                              .tbs_9[0] = src->tbs_9[0],
+                              .tbs_9[1] = src->tbs_9[1],
+                              .tbs_9[2] = src->tbs_9[2],
+                              .tbs_9[3] = src->tbs_9[3],
+                              .tbs_9[4] = src->tbs_9[4],
+
+                              .tbs_10[0] = src->tbs_10[0],
+                              .tbs_10[1] = src->tbs_10[1],
+                              .tbs_10[2] = src->tbs_10[2],
+                              .tbs_10[3] = src->tbs_10[3],
+                              .tbs_10[4] = src->tbs_10[4],
+*/
                               .frame = src->frame,
                               .slot = src->slot
                             }; 
   
-  
+  /*
   if(src->num_tbs > 0){
     dst.tbs = calloc(src->num_tbs, sizeof(tbs_stats_t));
     //assert(dst.tbs_list != NULL && "Memory exhausted" );
@@ -206,7 +267,7 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
       dst_ind->slot = src_ind->slot;
       dst_ind->latency = src_ind->latency;
       dst_ind->crc = src_ind->crc;
-    }
+    }*/
     /*
     for (uint32_t j = 0; j < src->num_tbs; j++){
       //dst.tbs_list[j][0] = src->tbs_list[j][0];
@@ -220,11 +281,12 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
       dst.tbs_latency[j] = src->tbs_latency[j];
       dst.tbs_crc[j] = src->tbs_crc[j];
     }
-    */
+    
   }
-  
+  */
   return dst;
 }
+
 
 mac_ind_msg_t cp_mac_ind_msg( mac_ind_msg_t const* src)
 {
@@ -298,13 +360,44 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
         ue0->ul_harq[2] != ue1->ul_harq[2] ||
         ue0->ul_harq[3] != ue1->ul_harq[3] ||
         ue0->ul_harq[4] != ue1->ul_harq[4] ||
+
+        ue0->tbs_1[0] != ue1->tbs_1[0] ||
+        ue0->tbs_1[1] != ue1->tbs_1[1] ||
+        ue0->tbs_1[2] != ue1->tbs_1[2] ||
+        ue0->tbs_1[3] != ue1->tbs_1[3] ||
+        ue0->tbs_1[4] != ue1->tbs_1[4] ||
+
+        ue0->tbs_2[0] != ue1->tbs_2[0] ||
+        ue0->tbs_2[1] != ue1->tbs_2[1] ||
+        ue0->tbs_2[2] != ue1->tbs_2[2] ||
+        ue0->tbs_2[3] != ue1->tbs_2[3] ||
+        ue0->tbs_2[4] != ue1->tbs_2[4] ||
+
+        ue0->tbs_3[0] != ue1->tbs_3[0] ||
+        ue0->tbs_3[1] != ue1->tbs_3[1] ||
+        ue0->tbs_3[2] != ue1->tbs_3[2] ||
+        ue0->tbs_3[3] != ue1->tbs_3[3] ||
+        ue0->tbs_3[4] != ue1->tbs_3[4] ||
+
+        ue0->tbs_4[0] != ue1->tbs_4[0] ||
+        ue0->tbs_4[1] != ue1->tbs_4[1] ||
+        ue0->tbs_4[2] != ue1->tbs_4[2] ||
+        ue0->tbs_4[3] != ue1->tbs_4[3] ||
+        ue0->tbs_4[4] != ue1->tbs_4[4] ||
+
+        ue0->tbs_5[0] != ue1->tbs_5[0] ||
+        ue0->tbs_5[1] != ue1->tbs_5[1] ||
+        ue0->tbs_5[2] != ue1->tbs_5[2] ||
+        ue0->tbs_5[3] != ue1->tbs_5[3] ||
+        ue0->tbs_5[4] != ue1->tbs_5[4] ||
+
         ue0->frame != ue1->frame ||
         ue0->slot != ue1->slot ||
         eq_float(ue0->pusch_snr, ue1->pusch_snr, 0.0000001) == false ||
         eq_float(ue0->pucch_snr, ue0->pucch_snr, 0.0000001) == false 
       )
       return false;
-    if(ue0->num_tbs > 0){
+    /*if(ue0->num_tbs > 0){
       if (ue0->num_tbs != ue1->num_tbs){
         return false;
       }
@@ -319,7 +412,7 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
       	  ue0_ind->latency != ue1_ind->latency ||
       	  ue0_ind->crc != ue1_ind->crc)
       	  return false;
-        
+    */    
         /*
         if (
           //ue0->tbs_list[j][0] != ue1->tbs_list[j][0] ||
@@ -334,9 +427,9 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
           ue0->tbs_latency[j] != ue1->tbs_latency[j] ||
           ue0->tbs_crc[j] != ue1->tbs_crc[j])
         */  
-          return false;
-      }
-    }
+          //return false;
+      //}
+    //}
   }
   return true;
 }
