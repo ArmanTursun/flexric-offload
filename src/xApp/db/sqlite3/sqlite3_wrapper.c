@@ -386,32 +386,32 @@ int to_sql_string_mac_ue(global_e2_node_id_t const* id, mac_ue_stats_impl_t* sta
       "%u," // ul_harq[1]
       "%u," // ul_harq[2]
       "%u," // ul_harq[3]
-      "%u" // ulsch_errors
+      "%u," // ulsch_errors
       "%u," // tbs_1[0]
       "%u," // tbs_1[1]
       "%u," // tbs_1[2]
       "%u," // tbs_1[3]
-      "%u" //  tbs_1[4]
+      "%u," // tbs_1[4]
       "%u," // tbs_2[0]
       "%u," // tbs_2[1]
       "%u," // tbs_2[2]
       "%u," // tbs_2[3]
-      "%u" //  tbs_2[4]
-      "%u," // tbs_3[0]
+      "%u"  // tbs_2[4]
+      /*"%u," // tbs_3[0]
       "%u," // tbs_3[1]
       "%u," // tbs_3[2]
       "%u," // tbs_3[3]
-      "%u" //  tbs_3[4]
+      "%u," // tbs_3[4]
       "%u," // tbs_4[0]
       "%u," // tbs_4[1]
       "%u," // tbs_4[2]
       "%u," // tbs_4[3]
-      "%u" //  tbs_4[4]
+      "%u," // tbs_4[4]
       "%u," // tbs_5[0]
       "%u," // tbs_5[1]
       "%u," // tbs_5[2]
       "%u," // tbs_5[3]
-      "%u" //  tbs_5[4]
+      "%u" //  tbs_5[4]*/
       ");"
       ,tstamp                
       ,id->type
@@ -470,7 +470,7 @@ int to_sql_string_mac_ue(global_e2_node_id_t const* id, mac_ue_stats_impl_t* sta
       ,stats->tbs_2[2]
       ,stats->tbs_2[3]
       ,stats->tbs_2[4]
-      ,stats->tbs_3[0]
+      /*,stats->tbs_3[0]
       ,stats->tbs_3[1]
       ,stats->tbs_3[2]
       ,stats->tbs_3[3]
@@ -484,7 +484,7 @@ int to_sql_string_mac_ue(global_e2_node_id_t const* id, mac_ue_stats_impl_t* sta
       ,stats->tbs_5[1]
       ,stats->tbs_5[2]
       ,stats->tbs_5[3]
-      ,stats->tbs_5[4]
+      ,stats->tbs_5[4]*/
       );
   assert(rc < (int)max && "Not enough space in the char array to write all the data");
   return rc;

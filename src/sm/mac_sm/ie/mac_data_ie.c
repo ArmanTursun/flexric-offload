@@ -189,7 +189,7 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
                               .tbs_2[2] = src->tbs_2[2],
                               .tbs_2[3] = src->tbs_2[3],
                               .tbs_2[4] = src->tbs_2[4],
-
+/*
                               .tbs_3[0] = src->tbs_3[0],
                               .tbs_3[1] = src->tbs_3[1],
                               .tbs_3[2] = src->tbs_3[2],
@@ -206,7 +206,7 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
                               .tbs_5[1] = src->tbs_5[1],
                               .tbs_5[2] = src->tbs_5[2],
                               .tbs_5[3] = src->tbs_5[3],
-                              .tbs_5[4] = src->tbs_5[4],
+                              .tbs_5[4] = src->tbs_5[4],*/
 /*
                               .tbs_6[0] = src->tbs_6[0],
                               .tbs_6[1] = src->tbs_6[1],
@@ -372,7 +372,7 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
         ue0->tbs_2[2] != ue1->tbs_2[2] ||
         ue0->tbs_2[3] != ue1->tbs_2[3] ||
         ue0->tbs_2[4] != ue1->tbs_2[4] ||
-
+/*
         ue0->tbs_3[0] != ue1->tbs_3[0] ||
         ue0->tbs_3[1] != ue1->tbs_3[1] ||
         ue0->tbs_3[2] != ue1->tbs_3[2] ||
@@ -390,7 +390,7 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
         ue0->tbs_5[2] != ue1->tbs_5[2] ||
         ue0->tbs_5[3] != ue1->tbs_5[3] ||
         ue0->tbs_5[4] != ue1->tbs_5[4] ||
-
+*/
         ue0->frame != ue1->frame ||
         ue0->slot != ue1->slot ||
         eq_float(ue0->pusch_snr, ue1->pusch_snr, 0.0000001) == false ||
