@@ -33,11 +33,12 @@
 static
 void log_mac_stats(mac_ue_stats_impl_t* rd)
 {
-  //for (int i = 0; i < rd->num_tbs; i++){
-  //  tbs_stats_t* tbs = &rd->tbs[i];
-  //  printf("tbs = %u, frame = %u", tbs->tbs, tbs->frame);
-  //}
-  printf("ul_aggr_tbs: %ld \n", rd->ul_aggr_tbs);
+  for (int i = 0; i < rd->num_tbs; i++){
+    //tbs_stats_t* tbs = &rd->dl_harq[i];
+    printf("tbs = %u, frame = %u, slot = %u, latency = %u, crc = %u \n", rd->tbs[i][0], rd->tbs[i][1], rd->tbs[i][2], rd->tbs[i][3], rd->tbs[i][4]);
+    //printf("tbs = %u, frame = %u, slot = %u, latency = %u, crc = %u \n", rd->ul_harq[0], rd->ul_harq[1], rd->ul_harq[2], rd->ul_harq[3], rd->ul_harq[4]);
+  }
+  //printf("ul_aggr_tbs: %ld \n", rd->ul_aggr_tbs);
   //printf("ul_curr_tbs: %ld \n", rd->ul_curr_tbs);
   //printf("ul_sched_rb: %ld \n", rd->ul_sched_rb);
   //printf("dl_aggr_tbs: %ld \n", rd->dl_aggr_tbs);
