@@ -25,6 +25,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "../../../util/alg_ds/alg/eq_float.h"
 
 
@@ -139,7 +140,7 @@ void free_mac_ind_msg(mac_ind_msg_t* src)
   if(src->len_ue_stats > 0){
     assert(src->ue_stats != NULL);
     for (uint32_t i = 0; i < src->len_ue_stats; i++)
-      free_tbs(src->ue_stats);
+      free_ue_stats(&src->ue_stats[i]);
     free(src->ue_stats);
   }
 }
@@ -184,7 +185,7 @@ bool eq_tbs(mac_tbs_stats_t* ue0, mac_tbs_stats_t* ue1)
   return true;
 }
 
-bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
+bool eq_mac_ind_msg(mac_ind_msg_t const* m0, mac_ind_msg_t* m1)
 {
   assert(m0 != NULL);
   assert(m1 != NULL);

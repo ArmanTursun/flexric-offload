@@ -46,8 +46,8 @@ void fill_mac_ind_data(mac_ind_data_t* ind)
     assert(ind_msg->ue_stats != NULL && "memory exhausted");
   }
 
-  const size_t numDLHarq = 4;
-  const size_t numUlHarq = 4;
+  //const size_t numDLHarq = 4;
+  //const size_t numUlHarq = 4;
 
   for(uint32_t i = 0; i < ind_msg->len_ue_stats; ++i){
     //ind_msg->ue_stats[i].dl_aggr_tbs = abs(rand()%mod);
@@ -58,7 +58,7 @@ void fill_mac_ind_data(mac_ind_data_t* ind)
     ind_msg->ue_stats[i].context.pusch_snr = 64.0; //: float = -64;
     ind_msg->ue_stats[i].context.pucch_snr = 64.0; //: float = -64;
     ind_msg->ue_stats[i].rnti = abs(rand()%mod);
-    ind_msg->ue_stats[i].num_tbs = abs(rand()%mod);
+    ind_msg->ue_stats[i].num_tbs = NUM_UES;
     //ind_msg->ue_stats[i].dl_aggr_prb = abs(rand()%mod);
     //ind_msg->ue_stats[i].ul_aggr_prb = abs(rand()%mod);
     //ind_msg->ue_stats[i].dl_aggr_sdus = abs(rand()%mod);
@@ -73,17 +73,17 @@ void fill_mac_ind_data(mac_ind_data_t* ind)
     ind_msg->ue_stats[i].context.phr= (rand()%64) - 23; // 41 abs(rand()%mod);
     ind_msg->ue_stats[i].context.bsr= abs(rand()%mod);
 
-    ind_msg->ue_stats[i].tbs = calloc(abs(rand()%5), sizeof(mac_tbs_stats_t));
+    ind_msg->ue_stats[i].tbs = calloc(NUM_UES, sizeof(mac_tbs_stats_t));
     assert(ind_msg->ue_stats[i].tbs != NULL && "memory exhausted");
     
-    for (uint32_t i = 0; i < ind_msg->ue_stats[i].num_tbs; i++)
+    for (int j = 0; j < NUM_UES; j++)
     {
-      mac_tbs_stats_t tbs = ind_msg->ue_stats[i].tbs[i];
-      tbs.tbs = abs(rand()%mod);
-      tbs.frame = abs(rand()%mod);
-      tbs.slot = abs(rand()%mod);
-      tbs.latency = abs(rand()%mod);
-      tbs.crc = abs(rand()%mod);
+      //mac_tbs_stats_t mac_tbs = ind_msg->ue_stats[i].tbs[j];
+      ind_msg->ue_stats[i].tbs[j].tbs = abs(rand()%mod);
+      ind_msg->ue_stats[i].tbs[j].frame = abs(rand()%mod);
+      ind_msg->ue_stats[i].tbs[j].slot = abs(rand()%mod);
+      ind_msg->ue_stats[i].tbs[j].latency = abs(rand()%mod);
+      ind_msg->ue_stats[i].tbs[j].crc = abs(rand()%mod);
     }
     //ind_msg->ue_stats[i].dl_num_harq = numUlHarq;
     //for (uint8_t j = 0; j < numDLHarq; j++)

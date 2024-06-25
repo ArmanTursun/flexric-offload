@@ -68,6 +68,24 @@ void create_mac_context_table(sqlite3* db)
 }
 
 static
+void create_mac_tbs_table(sqlite3* db)
+{
+  assert(db != NULL);
+
+  // ToDo: PRIMARY KEY UNIQUE
+  char* sql_mac = "DROP TABLE IF EXISTS MAC_TBS;"
+  "CREATE TABLE MAC_TBS(tstamp INT CHECK(tstamp > 0)," 
+                       "tbs INT,"
+                       "frame INT,"
+                       "slot INT,"
+                       "latency INT,"
+                       "crc INT,"
+                       ");";
+
+  create_table(db, sql_mac);
+}
+
+static
 void create_rlc_bearer_table(sqlite3* db)
 {
   assert(db != NULL);
@@ -357,7 +375,7 @@ int to_sql_string_context(global_e2_node_id_t const* id, context_stats_t* stats,
 }
 
 static
-int to_sql_string_tbs(global_e2_node_id_t const* id, mac_tbs_stats_t* stats, int64_t tstamp, char* out, size_t out_len)
+int to_sql_string_tbs(mac_tbs_stats_t* stats, int64_t tstamp, char* out, size_t out_len)
 {
   assert(stats != NULL);       
   assert(out != NULL);
@@ -367,8 +385,8 @@ int to_sql_string_tbs(global_e2_node_id_t const* id, mac_tbs_stats_t* stats, int
   int rc = snprintf(out, max, 
       "INSERT INTO MAC_UE VALUES("
       "%ld,"//tstamp
-      "%g,"// tbs        
-      "%g,"// frame      
+      "%u,"// tbs        
+      "%u,"// frame      
       "%u,"// slot           
       "%u,"// latency
       "%u"//  crc
@@ -970,7 +988,7 @@ int to_sql_string_gtp_NGUT(global_e2_node_id_t const* id,gtp_ngu_t_stats_t* gtp,
 // }
 
 static
-void write_context_stats(sqlite3* db, global_e2_node_id_t const* id, uint32_t rnti, int64_t tstamp, context_stats_t const* ind )
+void write_context_stats(sqlite3* db, global_e2_node_id_t const* id, uint32_t rnti, int64_t tstamp, context_stats_t* ind )
 {
   char buffer[4096] = {0};
   int pos = 0;
@@ -980,12 +998,12 @@ void write_context_stats(sqlite3* db, global_e2_node_id_t const* id, uint32_t rn
 }
 
 static
-void write_tbs_stats(sqlite3* db, global_e2_node_id_t const* id, int64_t tstamp, mac_tbs_stats_t const* ind )
+void write_tbs_stats(sqlite3* db, int64_t tstamp, mac_tbs_stats_t* ind )
 {
   char buffer[4096] = {0};
   int pos = 0;
 
-  pos += to_sql_string_tbs(id, ind, tstamp, buffer + pos, 4096 - pos);
+  pos += to_sql_string_tbs(ind, tstamp, buffer + pos, 4096 - pos);
   insert_db(db, buffer);
 }
 
@@ -995,10 +1013,10 @@ void write_ue_stats(sqlite3* db, global_e2_node_id_t const* id, int64_t tstamp, 
   assert(db != NULL);
   assert(ind != NULL);
   
-  write_context_stats(db, id, tstamp, &ind->context);
+  write_context_stats(db, id, ind->rnti, tstamp, &ind->context);
 
   for(size_t i = 0; i < ind->num_tbs; ++i){
-    write_tbs_stats(db, id, tstamp, &ind->tbs[i]);
+    write_tbs_stats(db, tstamp, &ind->tbs[i]);
   }
 }
 
@@ -1173,8 +1191,8 @@ void init_db_sqlite3(sqlite3** db, char const* db_filename)
   //////
   // MAC
   //////
-  create_mac_context_table(*db);
-  create_mac_tbs_table(*db);
+  //create_mac_context_table(*db);
+  //create_mac_tbs_table(*db);
 
   //////
   // RLC
@@ -1227,7 +1245,7 @@ void write_db_sqlite3(sqlite3* db, global_e2_node_id_t const* id, sm_ag_if_rd_t 
       || rd->type == RAN_CTRL_STATS_V1_03);
 
   if(rd->type == MAC_STATS_V0){
-    write_mac_stats(db, id, &rd->mac);
+    //write_mac_stats(db, id, &rd->mac);
   } else if(rd->type == RLC_STATS_V0 ){
     write_rlc_stats(db, id, &rd->rlc);
   } else if( rd->type == PDCP_STATS_V0) {

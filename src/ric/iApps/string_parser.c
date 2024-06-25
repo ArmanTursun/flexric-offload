@@ -36,7 +36,7 @@ void to_string_mac_ue_stats(mac_ue_stats_impl_t* stats, int64_t tstamp, char* ou
 {
   assert(stats != NULL);
   assert(out != NULL);
-  const size_t max = 2048;
+  const size_t max = 1024;
   assert(out_len >= max);
 
   char temp[2048] = {0};

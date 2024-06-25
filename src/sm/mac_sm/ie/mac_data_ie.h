@@ -131,7 +131,7 @@ typedef struct {
 
 bool eq_context(context_stats_t* ue0, context_stats_t* ue1);
 bool eq_tbs(mac_tbs_stats_t* ue0, mac_tbs_stats_t* ue1);
-bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1);
+bool eq_mac_ind_msg(mac_ind_msg_t const* m0, mac_ind_msg_t* m1);
 mac_tbs_stats_t cp_tbs_stats_impl(mac_tbs_stats_t const* src);
 context_stats_t cp_context_stats_impl(context_stats_t const* src);
 mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src);

@@ -64,33 +64,201 @@ byte_array_t mac_enc_ind_hdr_plain(mac_ind_hdr_t const* ind_hdr)
   return ba;
 }
 
+static
+size_t cal_context(context_stats_t const* ind_msg)
+{
+  assert(ind_msg != NULL);
+
+  size_t sz = sizeof(ind_msg->pusch_snr);
+  sz += sizeof(ind_msg->pucch_snr);
+  sz += sizeof(ind_msg->dl_bler);
+  sz += sizeof(ind_msg->ul_bler);
+  sz += sizeof(ind_msg->bsr);
+  sz += sizeof(ind_msg->wb_cqi); 
+  sz += sizeof(ind_msg->dl_mcs1);
+  sz += sizeof(ind_msg->ul_mcs1);
+  sz += sizeof(ind_msg->dl_mcs2); 
+  sz += sizeof(ind_msg->ul_mcs2); 
+  sz += sizeof(ind_msg->phr);
+  return sz;
+}
+
+static
+size_t cal_tbs(mac_tbs_stats_t const* ind_msg)
+{
+  assert(ind_msg != NULL);
+
+  size_t sz = sizeof(ind_msg->tbs);
+  sz += sizeof(ind_msg->frame);
+  sz += sizeof(ind_msg->slot);
+  sz += sizeof(ind_msg->latency);
+  sz += sizeof(ind_msg->crc);
+
+  return sz;
+}
+
+static
+size_t cal_ind_msg_payload(mac_ue_stats_impl_t const* ind_msg)
+{
+  assert(ind_msg != NULL);
+
+  size_t sz = sizeof(ind_msg->rnti);
+  sz += cal_context(&ind_msg->context);
+  sz += sizeof(ind_msg->num_tbs);
+  for (uint32_t i = 0; i < ind_msg->num_tbs; i++)
+    sz += cal_tbs(&ind_msg->tbs[i]);
+
+  return sz;
+}
+
+static
+uint8_t* end;
+
+static inline
+size_t fill_context(uint8_t* it, context_stats_t* cnxt)
+{
+  assert(it != NULL);
+  assert(cnxt != NULL);
+
+  assert(it < end && "could not fill more context");
+
+  memcpy(it, &cnxt->pusch_snr, sizeof(cnxt->pusch_snr));
+  it += sizeof(cnxt->pusch_snr);
+  size_t sz = sizeof(cnxt->pusch_snr);
+
+  memcpy(it, &cnxt->pucch_snr, sizeof(cnxt->pucch_snr));
+  it += sizeof(cnxt->pucch_snr);
+  sz += sizeof(cnxt->pucch_snr);
+
+  memcpy(it, &cnxt->dl_bler, sizeof(cnxt->dl_bler));
+  it += sizeof(cnxt->dl_bler);
+  sz += sizeof(cnxt->dl_bler);
+
+  memcpy(it, &cnxt->ul_bler, sizeof(cnxt->ul_bler));
+  it += sizeof(cnxt->ul_bler);
+  sz += sizeof(cnxt->ul_bler);
+
+  memcpy(it, &cnxt->bsr, sizeof(cnxt->bsr));
+  it += sizeof(cnxt->bsr);
+  sz += sizeof(cnxt->bsr);
+
+  memcpy(it, &cnxt->wb_cqi, sizeof(cnxt->wb_cqi));
+  it += sizeof(cnxt->wb_cqi);
+  sz += sizeof(cnxt->wb_cqi);
+
+  memcpy(it, &cnxt->dl_mcs1, sizeof(cnxt->dl_mcs1));
+  it += sizeof(cnxt->dl_mcs1);
+  sz += sizeof(cnxt->dl_mcs1);
+  
+  memcpy(it, &cnxt->ul_mcs1, sizeof(cnxt->ul_mcs1));
+  it += sizeof(cnxt->ul_mcs1);
+  sz += sizeof(cnxt->ul_mcs1);
+
+  memcpy(it, &cnxt->dl_mcs2, sizeof(cnxt->dl_mcs2));
+  it += sizeof(cnxt->dl_mcs2);
+  sz += sizeof(cnxt->dl_mcs2);
+
+  memcpy(it, &cnxt->ul_mcs2, sizeof(cnxt->ul_mcs2));
+  it += sizeof(cnxt->ul_mcs2);
+  sz += sizeof(cnxt->ul_mcs2);
+
+  memcpy(it, &cnxt->phr, sizeof(cnxt->phr));
+  it += sizeof(cnxt->phr);
+  sz += sizeof(cnxt->phr);
+
+  return sz;
+}
+
+static inline
+size_t fill_tbs(uint8_t* it, mac_tbs_stats_t* tbs)
+{
+  assert(it != NULL);
+  assert(tbs != NULL);
+
+  assert(it < end && "could not fill more tbs");
+
+  memcpy(it, &tbs->tbs, sizeof(tbs->tbs));
+  it += sizeof(tbs->tbs);
+  size_t sz = sizeof(tbs->tbs);
+
+  memcpy(it, &tbs->frame, sizeof(tbs->frame));
+  it += sizeof(tbs->frame);
+  sz += sizeof(tbs->frame);
+
+  memcpy(it, &tbs->slot, sizeof(tbs->slot));
+  it += sizeof(tbs->slot);
+  sz += sizeof(tbs->slot);
+
+  memcpy(it, &tbs->latency, sizeof(tbs->latency));
+  it += sizeof(tbs->latency);
+  sz += sizeof(tbs->latency);
+
+  memcpy(it, &tbs->crc, sizeof(tbs->crc));
+  it += sizeof(tbs->crc);
+  sz += sizeof(tbs->crc);
+
+  return sz;
+}
+
+static inline
+size_t fill_ue_stats(uint8_t* it, mac_ue_stats_impl_t* ue)
+{
+  assert(it != NULL);
+  assert(ue != NULL);
+
+  memcpy(it, &ue->rnti, sizeof(ue->rnti));
+  it += sizeof(ue->rnti);
+  size_t sz = sizeof(ue->rnti);
+
+  size_t pos1 = fill_context(it, &ue->context);
+  it += pos1;
+  sz += pos1;
+
+  memcpy(it, &ue->num_tbs, sizeof(ue->num_tbs));
+  it += sizeof(ue->num_tbs);
+  sz += sizeof(ue->num_tbs);
+
+  for(size_t i = 0; i < ue->num_tbs; ++i){
+    size_t tmp = fill_tbs(it, &ue->tbs[i]);
+    it += tmp;
+    sz += tmp;
+  }
+
+  return sz;
+}
+
+
 byte_array_t mac_enc_ind_msg_plain(mac_ind_msg_t const* ind_msg)
 {
   assert(ind_msg != NULL);
 
   byte_array_t ba = {0};
-  const uint32_t len = sizeof(ind_msg->len_ue_stats) 
-                      + sizeof(mac_ue_stats_impl_t) * ind_msg->len_ue_stats
-                      + sizeof(ind_msg->tstamp); 
+
+  size_t sz = sizeof(ind_msg->len_ue_stats);
+  for (uint32_t i = 0; i < ind_msg->len_ue_stats; i++)
+    sz += cal_ind_msg_payload(&ind_msg->ue_stats[i]);
+  sz += sizeof(ind_msg->tstamp);
   
 
-  ba.buf = calloc(1, len); 
-  assert(ba.buf != NULL);
+  ba.buf = malloc(sz);
+  assert(ba.buf != NULL && "Memory exhausted");
+  end = ba.buf + sz;
 
-  memcpy(ba.buf, &ind_msg->len_ue_stats, sizeof(ind_msg->len_ue_stats));
-  void* ptr = ba.buf + sizeof(ind_msg->len_ue_stats);
+  uint8_t* it = ba.buf;
+  memcpy(it, &ind_msg->len_ue_stats, sizeof(ind_msg->len_ue_stats));
+  it += sizeof(ind_msg->len_ue_stats);
 
   for(uint32_t i = 0; i < ind_msg->len_ue_stats; ++i){
-    memcpy(ptr, &ind_msg->ue_stats[i], sizeof(ind_msg->ue_stats[0]));
-    ptr += sizeof(ind_msg->ue_stats[0]);
+    size_t pos1 = fill_ue_stats(it, &ind_msg->ue_stats[i]);
+    it += pos1;
   }
 
-  memcpy(ptr, &ind_msg->tstamp, sizeof(ind_msg->tstamp));
-  ptr += sizeof(ind_msg->tstamp);
+  memcpy(it, &ind_msg->tstamp, sizeof(ind_msg->tstamp));
+  it += sizeof(ind_msg->tstamp);
   
-  assert(ptr == ba.buf + len && "Data layout mismacth");
+  assert(it == ba.buf + sz && "Data layout mismacth");
 
-  ba.len = len;
+  ba.len = sz;
   return ba;
 }
 

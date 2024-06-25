@@ -31,14 +31,21 @@
 #include <unistd.h>
 
 static
-void log_mac_stats(mac_ue_stats_impl_t* rd)
+void log_tbs_stats(mac_tbs_stats_t* rd)
+{
+  printf("tbs: %u \n", rd->tbs);
+  
+}
+
+static
+void log_mac_stats(context_stats_t* rd)
 {
   //for (int i = 0; i < rd->num_tbs; i++){
     //tbs_stats_t* tbs = &rd->dl_harq[i];
     //printf("tbs = %u, frame = %u, slot = %u, latency = %u, crc = %u \n", rd->tbs[i][0], rd->tbs[i][1], rd->tbs[i][2], rd->tbs[i][3], rd->tbs[i][4]);
     //printf("tbs = %u, frame = %u, slot = %u, latency = %u, crc = %u \n", rd->ul_harq[0], rd->ul_harq[1], rd->ul_harq[2], rd->ul_harq[3], rd->ul_harq[4]);
   //}
-  //printf("ul_aggr_tbs: %ld \n", rd->ul_aggr_tbs);
+  printf("snr: %f \n", rd->pusch_snr);
   //printf("ul_curr_tbs: %ld \n", rd->ul_curr_tbs);
   //printf("ul_sched_rb: %ld \n", rd->ul_sched_rb);
   //printf("dl_aggr_tbs: %ld \n", rd->dl_aggr_tbs);
@@ -56,13 +63,19 @@ void sm_cb_mac(sm_ag_if_rd_t const* rd)
   assert(rd != NULL);
   assert(rd->type ==INDICATION_MSG_AGENT_IF_ANS_V0);
   assert(rd->ind.type == MAC_STATS_V0);
+
+  mac_ind_msg_t* ind = &rd->ind.mac.msg;
  
   int64_t now = time_now_us();
   if(cnt_mac % 1024 == 0){
-    for (size_t i = 0; i < rd->ind.mac.msg.len_ue_stats; i++){
-      mac_ue_stats_impl_t* ue_context = &rd->ind.mac.msg.ue_stats[i];
-      printf("UE %d:\n", ue_context->rnti);
-      log_mac_stats(ue_context);
+    for (uint32_t i = 0; i < ind->len_ue_stats; i++){
+      mac_ue_stats_impl_t* ue = &ind->ue_stats[i];
+      //mac_tbs_stats_t* tbs = &rd->ind.mac.msg.ue_stats[i];
+      printf("UE %d:\n", ue->rnti);
+      log_mac_stats(&ue->context);
+      for (uint32_t i = 0; i < ue->num_tbs; i++){
+        log_tbs_stats(&ue->tbs[i]);
+      }
     }
     printf("MAC ind_msg latency = %ld μs\n", now - rd->ind.mac.msg.tstamp);
     printf("\n");

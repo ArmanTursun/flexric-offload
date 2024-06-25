@@ -50,131 +50,149 @@ mac_ind_hdr_t mac_dec_ind_hdr_plain(size_t len, uint8_t const ind_hdr[len])
   return ret;
 }
 
-uint32_t cal_ind_ue_msg_len_half(mac_ue_stats_impl_t *ind_ue_msg){
-  //uint32_t len = sizeof(uint64_t) * 8 + sizeof(float) * 4 + sizeof(uint32_t) * 20 + sizeof(uint16_t) * 2 + sizeof(uint8_t) * 5 + sizeof(int8_t) + sizeof(uint32_t) + sizeof(uint32_t) * ind_ue_msg->num_tbs * 5;
-  //return len;
-  uint32_t len = 0;
+static inline
+size_t fill_context(context_stats_t* cnxt, uint8_t const* it)
+{
+  assert(it != NULL);
+  assert(cnxt != NULL);
 
-  len += sizeof(ind_ue_msg->dl_aggr_tbs);
-  len += sizeof(ind_ue_msg->ul_aggr_tbs);
-  len += sizeof(ind_ue_msg->dl_aggr_bytes_sdus);
-  len += sizeof(ind_ue_msg->ul_aggr_bytes_sdus);
-  len += sizeof(ind_ue_msg->dl_curr_tbs);
-  len += sizeof(ind_ue_msg->ul_curr_tbs);
-  len += sizeof(ind_ue_msg->dl_sched_rb);
-  len += sizeof(ind_ue_msg->ul_sched_rb);
- 
-  len += sizeof(ind_ue_msg->pusch_snr); //: float = -64;
-  len += sizeof(ind_ue_msg->pucch_snr); //: float = -64;
+  memcpy(&cnxt->pusch_snr, it, sizeof(cnxt->pusch_snr));
+  it += sizeof(cnxt->pusch_snr);
+  size_t sz = sizeof(cnxt->pusch_snr);
 
-  len += sizeof(ind_ue_msg->dl_bler);
-  len += sizeof(ind_ue_msg->ul_bler);
+  memcpy(&cnxt->pucch_snr, it, sizeof(cnxt->pucch_snr));
+  it += sizeof(cnxt->pucch_snr);
+  sz += sizeof(cnxt->pucch_snr);
 
-  len += sizeof(ind_ue_msg->dl_harq);
-  len += sizeof(ind_ue_msg->ul_harq);
-  len += sizeof(ind_ue_msg->dl_num_harq);
-  len += sizeof(ind_ue_msg->ul_num_harq);
+  memcpy(&cnxt->dl_bler, it, sizeof(cnxt->dl_bler));
+  it += sizeof(cnxt->dl_bler);
+  sz += sizeof(cnxt->dl_bler);
 
-  len += sizeof(ind_ue_msg->rnti);
-  len += sizeof(ind_ue_msg->dl_aggr_prb); 
-  len += sizeof(ind_ue_msg->ul_aggr_prb);
-  len += sizeof(ind_ue_msg->dl_aggr_sdus);
-  len += sizeof(ind_ue_msg->ul_aggr_sdus);
-  len += sizeof(ind_ue_msg->dl_aggr_retx_prb);
-  len += sizeof(ind_ue_msg->ul_aggr_retx_prb);
+  memcpy(&cnxt->ul_bler, it, sizeof(cnxt->ul_bler));
+  it += sizeof(cnxt->ul_bler);
+  sz += sizeof(cnxt->ul_bler);
 
-  len += sizeof(ind_ue_msg->bsr);
-  len += sizeof(ind_ue_msg->frame);
-  len += sizeof(ind_ue_msg->slot);
+  memcpy(&cnxt->bsr, it, sizeof(cnxt->bsr));
+  it += sizeof(cnxt->bsr);
+  sz += sizeof(cnxt->bsr);
 
-  len += sizeof(ind_ue_msg->wb_cqi); 
-  len += sizeof(ind_ue_msg->dl_mcs1);
-  len += sizeof(ind_ue_msg->ul_mcs1);
-  len += sizeof(ind_ue_msg->dl_mcs2); 
-  len += sizeof(ind_ue_msg->ul_mcs2); 
-  len += sizeof(ind_ue_msg->phr); 
+  memcpy(&cnxt->wb_cqi, it, sizeof(cnxt->wb_cqi));
+  it += sizeof(cnxt->wb_cqi);
+  sz += sizeof(cnxt->wb_cqi);
+
+  memcpy(&cnxt->dl_mcs1, it, sizeof(cnxt->dl_mcs1));
+  it += sizeof(cnxt->dl_mcs1);
+  sz += sizeof(cnxt->dl_mcs1);
   
-  len += sizeof(ind_ue_msg->num_tbs);
-  //len += sizeof(ind_ue_msg->tbs);
-  //len += sizeof(ind_ue_msg->tbs_frame);
-  //len += sizeof(ind_ue_msg->tbs_slot);
-  //len += sizeof(ind_ue_msg->tbs_latency);
-  //len += sizeof(ind_ue_msg->tbs_crc);
-  //len += sizeof(tbs_stats_t) * ind_ue_msg->num_tbs;
+  memcpy(&cnxt->ul_mcs1, it, sizeof(cnxt->ul_mcs1));
+  it += sizeof(cnxt->ul_mcs1);
+  sz += sizeof(cnxt->ul_mcs1);
 
-  return len;
+  memcpy(&cnxt->dl_mcs2, it, sizeof(cnxt->dl_mcs2));
+  it += sizeof(cnxt->dl_mcs2);
+  sz += sizeof(cnxt->dl_mcs2);
 
+  memcpy(&cnxt->ul_mcs2, it, sizeof(cnxt->ul_mcs2));
+  it += sizeof(cnxt->ul_mcs2);
+  sz += sizeof(cnxt->ul_mcs2);
+
+  memcpy(&cnxt->phr, it, sizeof(cnxt->phr));
+  it += sizeof(cnxt->phr);
+  sz += sizeof(cnxt->phr);
+
+  return sz;
 }
+
+static inline
+size_t fill_tbs(mac_tbs_stats_t* tbs, uint8_t const* it)
+{
+  assert(it != NULL);
+  assert(tbs != NULL);
+
+  memcpy(&tbs->tbs, it, sizeof(tbs->tbs));
+  it += sizeof(tbs->tbs);
+  size_t sz = sizeof(tbs->tbs);
+
+  memcpy(&tbs->frame, it, sizeof(tbs->frame));
+  it += sizeof(tbs->frame);
+  sz += sizeof(tbs->frame);
+
+  memcpy(&tbs->slot, it, sizeof(tbs->slot));
+  it += sizeof(tbs->slot);
+  sz += sizeof(tbs->slot);
+
+  memcpy(&tbs->latency, it, sizeof(tbs->latency));
+  it += sizeof(tbs->latency);
+  sz += sizeof(tbs->latency);
+
+  memcpy(&tbs->crc, it, sizeof(tbs->crc));
+  it += sizeof(tbs->crc);
+  sz += sizeof(tbs->crc);
+
+  return sz;
+}
+
+static inline
+size_t fill_ue_stats(mac_ue_stats_impl_t* ue, uint8_t const* it)
+{
+  assert(it != NULL);
+  assert(ue != NULL);
+
+  memcpy(&ue->rnti, it, sizeof(ue->rnti));
+  it += sizeof(ue->rnti);
+  size_t sz = sizeof(ue->rnti);
+
+  size_t temp = fill_context(&ue->context, it);
+  it += temp;
+  sz += temp;
+
+  memcpy(&ue->num_tbs, it, sizeof(ue->num_tbs));
+  it += sizeof(ue->num_tbs);
+  sz += sizeof(ue->num_tbs);
+
+  if(ue->num_tbs > 0){
+    ue->tbs = calloc(ue->num_tbs, sizeof(mac_tbs_stats_t));
+    assert(ue->tbs != NULL && "memory exhausted");
+  }
+
+  for(size_t i = 0; i < ue->num_tbs; ++i){
+    size_t tmp = fill_tbs(&ue->tbs[i], it);
+    it += tmp;
+    sz += tmp;
+  }
+
+  return sz;
+}
+
 
 mac_ind_msg_t mac_dec_ind_msg_plain(size_t len, uint8_t const ind_msg[len])
 {
 //  assert(len == sizeof(mac_ind_msg_t)); 
-  mac_ind_msg_t ret;
+  mac_ind_msg_t ind = {0};
 
-  static_assert(sizeof(uint32_t) == sizeof(ret.len_ue_stats), "Different sizes!");
+  uint8_t const* it = ind_msg;
+  static_assert(sizeof(uint32_t) == sizeof(ind.len_ue_stats), "Different sizes!");
 
-  const size_t len_sizeof = sizeof(ret.len_ue_stats);
-  memcpy(&ret.len_ue_stats, ind_msg, len_sizeof);
+  memcpy(&ind.len_ue_stats, it, sizeof(ind.len_ue_stats));
+  it += sizeof(ind.len_ue_stats);
+  size_t sz = sizeof(ind.len_ue_stats);
 
-  if(ret.len_ue_stats > 0){
-    ret.ue_stats = calloc(ret.len_ue_stats, sizeof(mac_ue_stats_impl_t));
-    assert(ret.ue_stats != NULL && "Memory exhausted!");
+  if(ind.len_ue_stats > 0){
+    ind.ue_stats = calloc(ind.len_ue_stats, sizeof(mac_ue_stats_impl_t));
+    assert(ind.ue_stats != NULL && "memory exhausted");
   }
-
-  //uint32_t len_temp = 0;
-  //len_temp += sizeof(ret.len_ue_stats);
   
-  void* ptr = (void*)&ind_msg[len_sizeof];
-  
-  for(uint32_t i = 0; i < ret.len_ue_stats; ++i){
-    //mac_ue_stats_impl_t *ind_ue_msg = &ret.ue_stats[i];
-    memcpy(&ret.ue_stats[i], ptr, sizeof( mac_ue_stats_impl_t) );
-    //uint32_t ue_len = sizeof(uint64_t) * 8 + sizeof(float) * 4 + sizeof(uint32_t) * 20 + sizeof(uint16_t) * 2 + sizeof(uint8_t) * 5 + sizeof(int8_t) + sizeof(uint32_t);
-    //uint32_t ue_len = cal_ind_ue_msg_len_half(ind_ue_msg);
-    //memcpy(ind_ue_msg, ptr, ue_len );
-    ptr += sizeof( mac_ue_stats_impl_t); 
-    //ptr += ue_len; 
-    //len_temp += ue_len;
-
-    //ind_ue_msg->tbs = calloc(ind_ue_msg->num_tbs, sizeof(tbs_stats_t));
-    //tbs_stats_t* tbs = ind_ue_msg->tbs;
-   // memcpy(ind_ue_msg->tbs, ptr, sizeof(tbs_stats_t) * ind_ue_msg->num_tbs);
-    //ptr += sizeof(tbs_stats_t) * ind_ue_msg->num_tbs;
-    //len_temp += sizeof(tbs_stats_t) * ind_ue_msg->num_tbs;
-
-/*
-    mac_ue_stats_impl_t *ind_ue_msg = &ret.ue_stats[i];
-
-    ind_ue_msg->tbs = calloc(ind_ue_msg->num_tbs, sizeof(uint32_t));
-    memcpy(ind_ue_msg->tbs, ptr, sizeof(uint32_t) * ind_ue_msg->num_tbs);
-    ptr += sizeof(uint32_t) * ind_ue_msg->num_tbs;
-
-    ind_ue_msg->tbs_frame = calloc(ind_ue_msg->num_tbs, sizeof(uint32_t));
-    memcpy(ind_ue_msg->tbs_frame, ptr, sizeof(uint32_t) * ind_ue_msg->num_tbs);
-    ptr += sizeof(uint32_t) * ind_ue_msg->num_tbs;
-
-    ind_ue_msg->tbs_slot = calloc(ind_ue_msg->num_tbs, sizeof(uint32_t));
-    memcpy(ind_ue_msg->tbs_slot, ptr, sizeof(uint32_t) * ind_ue_msg->num_tbs);
-    ptr += sizeof(uint32_t) * ind_ue_msg->num_tbs;
-
-    ind_ue_msg->tbs_latency = calloc(ind_ue_msg->num_tbs, sizeof(uint32_t));
-    memcpy(ind_ue_msg->tbs_latency, ptr, sizeof(uint32_t) * ind_ue_msg->num_tbs);
-    ptr += sizeof(uint32_t) * ind_ue_msg->num_tbs;
-
-    ind_ue_msg->tbs_crc = calloc(ind_ue_msg->num_tbs, sizeof(uint32_t));
-    memcpy(ind_ue_msg->tbs_crc, ptr, sizeof(uint32_t) * ind_ue_msg->num_tbs);
-    ptr += sizeof(uint32_t) * ind_ue_msg->num_tbs;
-*/
+  for(uint32_t i = 0; i < ind.len_ue_stats; ++i){
+    sz = fill_ue_stats(&ind.ue_stats[i], it);
+    it += sz;
   }
+  
+  memcpy(&ind.tstamp, it, sizeof(ind.tstamp));
+  it += sizeof(ind.tstamp);
+  
+  assert(it == ind_msg + len && "data layout mismacth");
 
-  memcpy(&ret.tstamp, ptr, sizeof(ret.tstamp));
-  //len_temp += sizeof(ret.tstamp);
-  //printf("len = %u, len_ptr = %u \n", len, len_temp);
-
-  ptr += sizeof(ret.tstamp);
-  assert(ptr == ind_msg + len && "data layout mismacth");
-
-  return ret;
+  return ind;
 }
 
 mac_call_proc_id_t mac_dec_call_proc_id_plain(size_t len, uint8_t const call_proc_id[len])
