@@ -242,7 +242,7 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
                               .frame = src->frame,
                               .slot = src->slot
                             }; 
-  
+/*  
   if (src->num_tbs > 0){
     dst.num_tbs = src->num_tbs;
     for (int i = 0; i < dst.num_tbs; i++){
@@ -251,7 +251,7 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
       }
     }
   }
-  
+*/  
   /*
   if(src->num_tbs > 0){
     dst.tbs = calloc(src->num_tbs, sizeof(tbs_stats_t));
@@ -408,7 +408,7 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
         eq_float(ue0->pucch_snr, ue0->pucch_snr, 0.0000001) == false 
       )
       return false;
-    
+/*    
     if (ue0->num_tbs > 0){
       if (ue1->num_tbs != ue0->num_tbs)
         return false;
@@ -419,7 +419,7 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
         }
       }
     }
-    
+*/    
     /*if(ue0->num_tbs > 0){
       if (ue0->num_tbs != ue1->num_tbs){
         return false;
