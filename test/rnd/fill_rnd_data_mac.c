@@ -50,33 +50,47 @@ void fill_mac_ind_data(mac_ind_data_t* ind)
   const size_t numUlHarq = 4;
 
   for(uint32_t i = 0; i < ind_msg->len_ue_stats; ++i){
-    ind_msg->ue_stats[i].dl_aggr_tbs = abs(rand()%mod);
-    ind_msg->ue_stats[i].ul_aggr_tbs = abs(rand()%mod);
-    ind_msg->ue_stats[i].dl_aggr_bytes_sdus = abs(rand()%mod);
-    ind_msg->ue_stats[i].ul_aggr_bytes_sdus = abs(rand()%mod);
-    ind_msg->ue_stats[i].ul_curr_tbs = abs(rand()%10240);
-    ind_msg->ue_stats[i].pusch_snr = 64.0; //: float = -64;
-    ind_msg->ue_stats[i].pucch_snr = 64.0; //: float = -64;
+    //ind_msg->ue_stats[i].dl_aggr_tbs = abs(rand()%mod);
+    //ind_msg->ue_stats[i].ul_aggr_tbs = abs(rand()%mod);
+    //ind_msg->ue_stats[i].dl_aggr_bytes_sdus = abs(rand()%mod);
+    //ind_msg->ue_stats[i].ul_aggr_bytes_sdus = abs(rand()%mod);
+    //ind_msg->ue_stats[i].ul_curr_tbs = abs(rand()%10240);
+    ind_msg->ue_stats[i].context.pusch_snr = 64.0; //: float = -64;
+    ind_msg->ue_stats[i].context.pucch_snr = 64.0; //: float = -64;
     ind_msg->ue_stats[i].rnti = abs(rand()%mod);
-    ind_msg->ue_stats[i].dl_aggr_prb = abs(rand()%mod);
-    ind_msg->ue_stats[i].ul_aggr_prb = abs(rand()%mod);
-    ind_msg->ue_stats[i].dl_aggr_sdus = abs(rand()%mod);
-    ind_msg->ue_stats[i].ul_aggr_sdus= abs(rand()%mod);
-    ind_msg->ue_stats[i].dl_aggr_retx_prb= abs(rand()%mod);
-    ind_msg->ue_stats[i].ul_aggr_retx_prb= abs(rand()%mod);
-    ind_msg->ue_stats[i].wb_cqi= abs(rand()%mod);
-    ind_msg->ue_stats[i].dl_mcs1= abs(rand()%mod);
-    ind_msg->ue_stats[i].ul_mcs1= abs(rand()%mod);
-    ind_msg->ue_stats[i].dl_mcs2= abs(rand()%mod);
-    ind_msg->ue_stats[i].ul_mcs2= abs(rand()%mod);
-    ind_msg->ue_stats[i].phr= (rand()%64) - 23; // 41 abs(rand()%mod);
-    ind_msg->ue_stats[i].bsr= abs(rand()%mod);
-    ind_msg->ue_stats[i].dl_num_harq = numUlHarq;
-    for (uint8_t j = 0; j < numDLHarq; j++)
-      ind_msg->ue_stats[i].dl_harq[j] = abs(rand()%mod);
-    ind_msg->ue_stats[i].ul_num_harq = numUlHarq;
-    for (uint8_t j = 0; j < numUlHarq; j++)
-      ind_msg->ue_stats[i].ul_harq[j] = abs(rand()%mod);
+    ind_msg->ue_stats[i].num_tbs = abs(rand()%mod);
+    //ind_msg->ue_stats[i].dl_aggr_prb = abs(rand()%mod);
+    //ind_msg->ue_stats[i].ul_aggr_prb = abs(rand()%mod);
+    //ind_msg->ue_stats[i].dl_aggr_sdus = abs(rand()%mod);
+    //ind_msg->ue_stats[i].ul_aggr_sdus= abs(rand()%mod);
+    //ind_msg->ue_stats[i].dl_aggr_retx_prb= abs(rand()%mod);
+    //ind_msg->ue_stats[i].ul_aggr_retx_prb= abs(rand()%mod);
+    ind_msg->ue_stats[i].context.wb_cqi= abs(rand()%mod);
+    ind_msg->ue_stats[i].context.dl_mcs1= abs(rand()%mod);
+    ind_msg->ue_stats[i].context.ul_mcs1= abs(rand()%mod);
+    ind_msg->ue_stats[i].context.dl_mcs2= abs(rand()%mod);
+    ind_msg->ue_stats[i].context.ul_mcs2= abs(rand()%mod);
+    ind_msg->ue_stats[i].context.phr= (rand()%64) - 23; // 41 abs(rand()%mod);
+    ind_msg->ue_stats[i].context.bsr= abs(rand()%mod);
+
+    ind_msg->ue_stats[i].tbs = calloc(abs(rand()%5), sizeof(mac_tbs_stats_t));
+    assert(ind_msg->ue_stats[i].tbs != NULL && "memory exhausted");
+    
+    for (uint32_t i = 0; i < ind_msg->ue_stats[i].num_tbs; i++)
+    {
+      mac_tbs_stats_t tbs = ind_msg->ue_stats[i].tbs[i];
+      tbs.tbs = abs(rand()%mod);
+      tbs.frame = abs(rand()%mod);
+      tbs.slot = abs(rand()%mod);
+      tbs.latency = abs(rand()%mod);
+      tbs.crc = abs(rand()%mod);
+    }
+    //ind_msg->ue_stats[i].dl_num_harq = numUlHarq;
+    //for (uint8_t j = 0; j < numDLHarq; j++)
+      //ind_msg->ue_stats[i].dl_harq[j] = abs(rand()%mod);
+    //ind_msg->ue_stats[i].ul_num_harq = numUlHarq;
+    //for (uint8_t j = 0; j < numUlHarq; j++)
+      //ind_msg->ue_stats[i].ul_harq[j] = abs(rand()%mod);
   }
 }
 

@@ -96,71 +96,32 @@ typedef struct
   uint32_t slot;
   uint32_t latency;
   uint32_t crc; 
-} tbs_stats_t;
+} mac_tbs_stats_t;
 
 typedef struct
 {
-  uint64_t dl_aggr_tbs;
-  uint64_t ul_aggr_tbs;
-  uint64_t dl_aggr_bytes_sdus;
-  uint64_t ul_aggr_bytes_sdus;
-  uint64_t dl_curr_tbs;
-  uint64_t ul_curr_tbs;
-  uint64_t dl_sched_rb;
-  uint64_t ul_sched_rb;
- 
   float pusch_snr; //: float = -64;
   float pucch_snr; //: float = -64;
-
   float dl_bler;
   float ul_bler;
-
-  uint32_t dl_harq[5];
-  uint32_t ul_harq[5];
-  uint32_t dl_num_harq;
-  uint32_t ul_num_harq;
-
-  uint32_t rnti;
-  uint32_t dl_aggr_prb; 
-  uint32_t ul_aggr_prb;
-  uint32_t dl_aggr_sdus;
-  uint32_t ul_aggr_sdus;
-  uint32_t dl_aggr_retx_prb;
-  uint32_t ul_aggr_retx_prb;
-
   uint32_t bsr;
-  uint16_t frame;
-  uint16_t slot;
-
   uint8_t wb_cqi; 
   uint8_t dl_mcs1;
   uint8_t ul_mcs1;
   uint8_t dl_mcs2; 
   uint8_t ul_mcs2; 
-  int8_t phr; 
-  
+  int8_t phr;
+} context_stats_t;
+
+
+typedef struct
+{
+  uint32_t rnti; 
+  context_stats_t context;
   uint32_t num_tbs;
-  //uint32_t tbs[10][5];
-  //tbs_stats_t* tbs;
-  //uint32_t* tbs;
-  //uint32_t* tbs_frame;
-  //uint32_t* tbs_slot;
-  //uint32_t* tbs_latency;
-  //uint32_t* tbs_crc;
-  //uint32_t tbs_1[5];
-  //uint32_t tbs_2[5];
-  //uint32_t tbs_3[5];
-  //uint32_t tbs_4[5];
-  //uint32_t tbs_5[5];
-  //uint32_t tbs_6[5];
-  //uint32_t tbs_7[5];
-  //uint32_t tbs_8[5];
-  //uint32_t tbs_9[5];
-  //uint32_t tbs_10[5];
+  mac_tbs_stats_t* tbs;
 
 } mac_ue_stats_impl_t;
-
-mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src);
 
 typedef struct {
   uint32_t len_ue_stats;
@@ -168,11 +129,18 @@ typedef struct {
   int64_t tstamp;
 } mac_ind_msg_t;
 
+bool eq_context(context_stats_t* ue0, context_stats_t* ue1);
+bool eq_tbs(mac_tbs_stats_t* ue0, mac_tbs_stats_t* ue1);
+bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1);
+mac_tbs_stats_t cp_tbs_stats_impl(mac_tbs_stats_t const* src);
+context_stats_t cp_context_stats_impl(context_stats_t const* src);
+mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src);
+
 void free_mac_ind_msg(mac_ind_msg_t* src); 
 
 mac_ind_msg_t cp_mac_ind_msg(mac_ind_msg_t const* src);
 
-bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1);
+
 
 
 //////////////////////////////////////

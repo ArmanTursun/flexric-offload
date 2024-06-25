@@ -36,146 +36,77 @@ void to_string_mac_ue_stats(mac_ue_stats_impl_t* stats, int64_t tstamp, char* ou
 {
   assert(stats != NULL);
   assert(out != NULL);
-  const size_t max = 1024;
+  const size_t max = 2048;
   assert(out_len >= max);
-  int rc = snprintf(out, max, "mac_stats: "
-        "tstamp=%ld,"
-        "frame=%d,"
-        "slot=%d,"
-        "dl_aggr_tbs=%lu,"
-        "ul_aggr_tbs=%lu,"
-        "dl_aggr_bytes_sdus=%lu,"
-        "ul_aggr_bytes_sdus=%lu,"
-        "dl_curr_tbs=%lu,"
-        "ul_curr_tbs=%lu,"
-        "dl_sched_rb=%lu,"
-        "ul_sched_rb=%lu,"
-        "pusch_snr=%g,"
-        "pucch_snr=%g,"
-        "rnti=%x,"
-        "dl_aggr_prb=%u,"
-        "ul_aggr_prb=%u,"
-        "dl_aggr_sdus=%u,"
-        "ul_aggr_sdus=%u,"
-        "dl_aggr_retx_prb=%u,"
-        "ul_aggr_retx_prb=%u,"
-        "wb_cqi=%u,"
-        "dl_mcs1=%u,"
-        "ul_mcs1=%u,"
-        "dl_mcs2=%u,"
-        "ul_mcs2=%u,"
-        "phr=%d,"
-        "bsr=%u,"
-        "dl_bler=%f,"
-        "ul_bler=%f,"
-        "dl_num_harq=%d,"
-        "dl_harq[0]=%u,"
-        "dl_harq[1]=%u,"
-        "dl_harq[2]=%u,"
-        "dl_harq[3]=%u,"
-        "dlsch_errors=%u,"
-        "ul_num_harq=%d,"
-        "ul_harq[0]=%u,"
-        "ul_harq[1]=%u,"
-        "ul_harq[2]=%u,"
-        "ul_harq[3]=%u,"
-        "ulsch_errors=%u"
-        /*"num_tbs=%u,"
-        "tbs_1[0]=%u,"
-        "tbs_1[1]=%u,"
-        "tbs_1[2]=%u,"
-        "tbs_1[3]=%u,"
-        "tbs_1[4]=%u,"
-        "tbs_2[0]=%u,"
-        "tbs_2[1]=%u,"
-        "tbs_2[2]=%u,"
-        "tbs_2[3]=%u,"
-        "tbs_2[4]=%u"
-        "tbs_3[0]=%u,"
-        "tbs_3[1]=%u,"
-        "tbs_3[2]=%u,"
-        "tbs_3[3]=%u,"
-        "tbs_3[4]=%u,"
-        "tbs_4[0]=%u,"
-        "tbs_4[1]=%u,"
-        "tbs_4[2]=%u,"
-        "tbs_4[3]=%u,"
-        "tbs_4[4]=%u,"
-        "tbs_5[0]=%u,"
-        "tbs_5[1]=%u,"
-        "tbs_5[2]=%u,"
-        "tbs_5[3]=%u,"
-        "tbs_5[4]=%u"*/
-        "\n"
-        ,tstamp
-        ,stats->frame
-        ,stats->slot
-        ,stats->dl_aggr_tbs
-        ,stats->ul_aggr_tbs 
-        ,stats->dl_aggr_bytes_sdus 
-        ,stats->ul_aggr_bytes_sdus  
-        ,stats->dl_curr_tbs
-        ,stats->ul_curr_tbs
-        ,stats->dl_sched_rb
-        ,stats->ul_sched_rb
-        ,stats->pusch_snr 
-        ,stats->pucch_snr 
-        ,stats->rnti 
-        ,stats->dl_aggr_prb  
-        ,stats->ul_aggr_prb 
-        ,stats->dl_aggr_sdus 
-        ,stats->ul_aggr_sdus 
-        ,stats->dl_aggr_retx_prb  
-        ,stats->ul_aggr_retx_prb
-        ,stats->wb_cqi
-        ,stats->dl_mcs1
-        ,stats->ul_mcs1
-        ,stats->dl_mcs2
-        ,stats->ul_mcs2
-        ,stats->phr 
-        ,stats->bsr
-        ,stats->dl_bler
-        ,stats->ul_bler
-        ,stats->dl_num_harq
-        ,stats->dl_harq[0]
-        ,stats->dl_harq[1]
-        ,stats->dl_harq[2]
-        ,stats->dl_harq[3]
-        ,stats->dl_harq[4]
-        ,stats->ul_num_harq
-        ,stats->ul_harq[0]
-        ,stats->ul_harq[1]
-        ,stats->ul_harq[2]
-        ,stats->ul_harq[3]
-        ,stats->ul_harq[4]
-        /*,stats->num_tbs
-        ,stats->tbs_1[4]
-        ,stats->tbs_1[4]
-        ,stats->tbs_1[4]
-        ,stats->tbs_1[4]
-        ,stats->tbs_1[4]
-        ,stats->tbs_2[4]
-        ,stats->tbs_2[4]
-        ,stats->tbs_2[4]
-        ,stats->tbs_2[4]
-        ,stats->tbs_2[4]
-        ,stats->tbs_3[4]
-        ,stats->tbs_3[4]
-        ,stats->tbs_3[4]
-        ,stats->tbs_3[4]
-        ,stats->tbs_3[4]
-        ,stats->tbs_4[4]
-        ,stats->tbs_4[4]
-        ,stats->tbs_4[4]
-        ,stats->tbs_4[4]
-        ,stats->tbs_4[4]
-        ,stats->tbs_5[4]
-        ,stats->tbs_5[4]
-        ,stats->tbs_5[4]
-        ,stats->tbs_5[4]
-        ,stats->tbs_5[4]*/
-        );
-  assert(rc < (int)max && "Not enough space in the char array to write all the data");
+
+  char temp[2048] = {0};
+  size_t sz = 0;
+
+  if (stats->num_tbs >= 0) {
+    int rc = snprintf(temp, out_len,  "mac_stats: "
+                      "tstamp=%ld"
+                      ",rnti=%u"
+                      ",num_tbs=%u"
+                      ",pusch_snr=%f"
+                      ",pucch_snr=%f"
+                      ",dl_bler=%f"
+                      ",ul_bler=%f"
+                      ",bsr=%u"
+                      ",wb_cqi=%u"
+                      ",dl_mcs1=%u"
+                      ",ul_mcs1=%u"
+                      ",dl_mcs2=%u"
+                      ",ul_mcs2=%u"
+                      ",phr=%d"
+                      , tstamp
+                      , stats->rnti
+                      , stats->num_tbs
+                      , stats->context.pusch_snr
+                      , stats->context.pucch_snr
+                      , stats->context.dl_bler
+                      , stats->context.ul_bler
+                      , stats->context.bsr
+                      , stats->context.wb_cqi
+                      , stats->context.dl_mcs1
+                      , stats->context.ul_mcs1
+                      , stats->context.dl_mcs2
+                      , stats->context.ul_mcs2
+                      , stats->context.phr
+                      );
+    assert(rc < (int)max && "Not enough space in the char array to write all the data");
+
+    memcpy(out, temp, strlen(temp));
+    sz += strlen(temp);
+  }
+
+  for(uint32_t i = 0; i < stats->num_tbs; ++i) {
+    mac_tbs_stats_t* tbs = &stats->tbs[i];
+
+    memset(temp, 0, sizeof(temp));
+
+    int rc = snprintf(temp, out_len,
+                      ",tbs[%u]"
+                      ",frame=%x"
+                      ",slot=%d"
+                      ",latency=%x"
+                      ",crc=%d"
+                      ,tbs->tbs
+                      ,tbs->frame
+                      ,tbs->slot
+                      ,tbs->latency
+                      ,tbs->crc);
+    assert(rc < (int)max && "Not enough space in the char array to write all the data");
+
+    memcpy(out + sz, temp, strlen(temp));
+    sz += strlen(temp);
+  }
+
+  char end[] = "\n";
+  memcpy(out + sz, end, strlen(end));
+  sz += strlen(end);
+  out[sz] = '\0';
+  assert(strlen(out) < max && "Not enough space in the char array to write all the data");
+
 }
 
 

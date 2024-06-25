@@ -123,177 +123,149 @@ bool eq_mac_ind_hdr(mac_ind_hdr_t* m0, mac_ind_hdr_t* m1)
 // RIC Indication Message 
 /////////////////////////////////////
 
+
+void free_ue_stats(mac_ue_stats_impl_t* src)
+{
+  assert(src != NULL);
+  if(src->num_tbs > 0){
+    assert(src->tbs != NULL);
+    free(src->tbs);
+  }
+}
+
 void free_mac_ind_msg(mac_ind_msg_t* src)
 {
   assert(src != NULL);
   if(src->len_ue_stats > 0){
     assert(src->ue_stats != NULL);
+    for (uint32_t i = 0; i < src->len_ue_stats; i++)
+      free_tbs(src->ue_stats);
     free(src->ue_stats);
   }
+}
+
+
+bool eq_context(context_stats_t* ue0, context_stats_t* ue1)
+{
+  assert(ue0 != NULL);
+  assert(ue1 != NULL);
+
+  if(
+        ue0->wb_cqi != ue1->wb_cqi || 
+        ue0->dl_mcs1 != ue1->dl_mcs1 ||
+        ue0->ul_mcs1 != ue1->ul_mcs1 ||
+        ue0->dl_mcs2 != ue1->dl_mcs2 || 
+        ue0->ul_mcs2 != ue1->ul_mcs2 || 
+        ue0->phr != ue1->phr || 
+        ue0->bsr != ue1->bsr ||
+        ue0->dl_bler != ue1->dl_bler ||
+        ue0->ul_bler != ue1->ul_bler ||
+
+        eq_float(ue0->pusch_snr, ue1->pusch_snr, 0.0000001) == false ||
+        eq_float(ue0->pucch_snr, ue0->pucch_snr, 0.0000001) == false 
+  )
+    return false;
+  return true;
+}
+
+bool eq_tbs(mac_tbs_stats_t* ue0, mac_tbs_stats_t* ue1)
+{
+  assert(ue0 != NULL);
+  assert(ue1 != NULL);
+
+  if(
+        ue0->tbs != ue1->tbs || 
+        ue0->frame != ue1->frame ||
+        ue0->slot != ue1->slot ||
+        ue0->latency != ue1->latency || 
+        ue0->crc != ue1->crc
+  )
+    return false;
+  return true;
+}
+
+bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
+{
+  assert(m0 != NULL);
+  assert(m1 != NULL);
+
+  if(m0->len_ue_stats != m1->len_ue_stats || m0->tstamp != m1->tstamp)
+    return false;
+
+  for(uint32_t i = 0 ; i < m0->len_ue_stats; ++i){
+    mac_ue_stats_impl_t* ue0 = &m0->ue_stats[i]; 
+    mac_ue_stats_impl_t* ue1 = &m1->ue_stats[i]; 
+    if (ue0->rnti != ue1->rnti)
+      return false;
+    if (!eq_context(&ue0->context, &ue1->context)){
+      printf("context data is not equal\n");
+      return false;
+    }
+    if (ue0->num_tbs != ue1->num_tbs)
+      return false;
+    if (ue0->num_tbs > 0){
+      for (uint32_t i = 0; i < ue0->num_tbs; i++){
+        if (!eq_tbs(&ue0->tbs[i], &ue1->tbs[i])){
+          printf("tbs data is not equal\n");
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
+mac_tbs_stats_t cp_tbs_stats_impl(mac_tbs_stats_t const* src)
+{
+  assert(src != NULL);
+  mac_tbs_stats_t dst = {0};
+
+  dst.tbs = src->tbs;
+  dst.frame = src->frame;
+  dst.slot = src->slot; 
+  dst.latency = src->latency;
+  dst.crc = src->crc;
+  return dst;
+}
+
+context_stats_t cp_context_stats_impl(context_stats_t const* src)
+{
+  assert(src != NULL);
+  context_stats_t dst = {0};
+
+  dst.pusch_snr = src->pusch_snr; //: float = -64;
+  dst.pucch_snr = src->pucch_snr; //: float = -64;
+
+  dst.wb_cqi = src->wb_cqi;
+  dst.dl_mcs1 = src->dl_mcs1;
+  dst.ul_mcs1 = src->ul_mcs1;
+  dst.dl_mcs2 = src->dl_mcs2; 
+  dst.ul_mcs2 = src->ul_mcs2; 
+  dst.phr = src->phr;
+  dst.bsr = src->bsr;
+  dst.dl_bler = src->dl_bler;
+  dst.ul_bler = src->ul_bler;
+  return dst;
 }
 
 mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
 {
   assert(src != NULL);
+  mac_ue_stats_impl_t dst = {0};
+  
+  dst.rnti = src->rnti;
+  dst.context = cp_context_stats_impl(&src->context);
+  dst.num_tbs = src->num_tbs;
 
-  mac_ue_stats_impl_t dst = { .dl_aggr_tbs = src->dl_aggr_tbs,
-                              .ul_aggr_tbs = src->ul_aggr_tbs,
-                              .dl_aggr_bytes_sdus = src->dl_aggr_bytes_sdus,
-                              .ul_aggr_bytes_sdus = src->ul_aggr_bytes_sdus,
-                              .dl_curr_tbs = src->dl_curr_tbs,
-                              .ul_curr_tbs = src->ul_curr_tbs,
-                              .dl_sched_rb = src->dl_sched_rb,
-                              .ul_sched_rb = src->ul_sched_rb,
-
-                              .pusch_snr = src->pusch_snr, //: float = -64;
-                              .pucch_snr = src->pucch_snr, //: float = -64;
-
-                              .rnti = src->rnti,
-                              .dl_aggr_prb = src->dl_aggr_prb, 
-                              .ul_aggr_prb = src->ul_aggr_prb,
-                              .dl_aggr_sdus = src->dl_aggr_sdus,
-                              .ul_aggr_sdus = src->ul_aggr_sdus,
-                              .dl_aggr_retx_prb = src->dl_aggr_retx_prb,
-                              .ul_aggr_retx_prb = src->ul_aggr_retx_prb,
-
-                              .wb_cqi = src->wb_cqi, 
-                              .dl_mcs1 = src->dl_mcs1,
-                              .ul_mcs1 = src->ul_mcs1,
-                              .dl_mcs2 = src->dl_mcs2, 
-                              .ul_mcs2 = src->ul_mcs2, 
-                              .phr = src->phr,
-                              .bsr = src->bsr,
-                              .dl_bler = src->dl_bler,
-                              .ul_bler = src->ul_bler,
-                              .dl_num_harq = src->dl_num_harq,
-                              .dl_harq[0] = src->dl_harq[0],
-                              .dl_harq[1] = src->dl_harq[1],
-                              .dl_harq[2] = src->dl_harq[2],
-                              .dl_harq[3] = src->dl_harq[3],
-                              .dl_harq[4] = src->dl_harq[4],
-                              .ul_num_harq = src->ul_num_harq,
-                              .ul_harq[0] = src->ul_harq[0],
-                              .ul_harq[1] = src->ul_harq[1],
-                              .ul_harq[2] = src->ul_harq[2],
-                              .ul_harq[3] = src->ul_harq[3],
-                              .ul_harq[4] = src->ul_harq[4],
-
-                              .num_tbs = src->num_tbs,
-/*                              .tbs_1[0] = src->tbs_1[0],
-                              .tbs_1[1] = src->tbs_1[1],
-                              .tbs_1[2] = src->tbs_1[2],
-                              .tbs_1[3] = src->tbs_1[3],
-                              .tbs_1[4] = src->tbs_1[4],
-
-                              .tbs_2[0] = src->tbs_2[0],
-                              .tbs_2[1] = src->tbs_2[1],
-                              .tbs_2[2] = src->tbs_2[2],
-                              .tbs_2[3] = src->tbs_2[3],
-                              .tbs_2[4] = src->tbs_2[4],
-
-                              .tbs_3[0] = src->tbs_3[0],
-                              .tbs_3[1] = src->tbs_3[1],
-                              .tbs_3[2] = src->tbs_3[2],
-                              .tbs_3[3] = src->tbs_3[3],
-                              .tbs_3[4] = src->tbs_3[4],
-
-                              .tbs_4[0] = src->tbs_4[0],
-                              .tbs_4[1] = src->tbs_4[1],
-                              .tbs_4[2] = src->tbs_4[2],
-                              .tbs_4[3] = src->tbs_4[3],
-                              .tbs_4[4] = src->tbs_4[4],
-
-                              .tbs_5[0] = src->tbs_5[0],
-                              .tbs_5[1] = src->tbs_5[1],
-                              .tbs_5[2] = src->tbs_5[2],
-                              .tbs_5[3] = src->tbs_5[3],
-                              .tbs_5[4] = src->tbs_5[4],*/
-/*
-                              .tbs_6[0] = src->tbs_6[0],
-                              .tbs_6[1] = src->tbs_6[1],
-                              .tbs_6[2] = src->tbs_6[2],
-                              .tbs_6[3] = src->tbs_6[3],
-                              .tbs_6[4] = src->tbs_6[4],
-
-                              .tbs_7[0] = src->tbs_7[0],
-                              .tbs_7[1] = src->tbs_7[1],
-                              .tbs_7[2] = src->tbs_7[2],
-                              .tbs_7[3] = src->tbs_7[3],
-                              .tbs_7[4] = src->tbs_7[4],
-
-                              .tbs_8[0] = src->tbs_8[0],
-                              .tbs_8[1] = src->tbs_8[1],
-                              .tbs_8[2] = src->tbs_8[2],
-                              .tbs_8[3] = src->tbs_8[3],
-                              .tbs_8[4] = src->tbs_8[4],
-
-                              .tbs_9[0] = src->tbs_9[0],
-                              .tbs_9[1] = src->tbs_9[1],
-                              .tbs_9[2] = src->tbs_9[2],
-                              .tbs_9[3] = src->tbs_9[3],
-                              .tbs_9[4] = src->tbs_9[4],
-
-                              .tbs_10[0] = src->tbs_10[0],
-                              .tbs_10[1] = src->tbs_10[1],
-                              .tbs_10[2] = src->tbs_10[2],
-                              .tbs_10[3] = src->tbs_10[3],
-                              .tbs_10[4] = src->tbs_10[4],
-*/
-                              .frame = src->frame,
-                              .slot = src->slot
-                            }; 
-/*  
-  if (src->num_tbs > 0){
-    dst.num_tbs = src->num_tbs;
-    for (int i = 0; i < dst.num_tbs; i++){
-      for (int j = 0; j < 5; j++){
-        dst.tbs[i][j] = src->tbs[i][j];
-      }
-    }
+  if(dst.num_tbs > 0){
+    dst.tbs = calloc(dst.num_tbs, sizeof( mac_tbs_stats_t) );
+    assert(dst.tbs != NULL && "Memory exhausted");
   }
-*/  
-  /*
-  if(src->num_tbs > 0){
-    dst.tbs = calloc(src->num_tbs, sizeof(tbs_stats_t));
-    //assert(dst.tbs_list != NULL && "Memory exhausted" );
-    dst.num_tbs = src->num_tbs;
 
-    //dst.tbs = calloc(dst.num_tbs, sizeof(uint32_t));
-    //dst.tbs_frame = calloc(dst.num_tbs, sizeof(uint32_t));
-    //dst.tbs_slot = calloc(dst.num_tbs, sizeof(uint32_t));
-    //dst.tbs_latency = calloc(dst.num_tbs, sizeof(uint32_t));
-    //dst.tbs_crc = calloc(dst.num_tbs, sizeof(uint32_t));
-
-    //dst.sched_name = malloc(src->len_sched_name, sizeof(uint32_t));
-    //assert(dst.sched_name != NULL && "memory exhausted");
-    //memcpy(dst.sched_name, src->sched_name, src->len_sched_name);
-
-    
-    for (int i = 0; i < src->num_tbs; i++){
-      tbs_stats_t* src_ind = &src->tbs[i];
-      tbs_stats_t* dst_ind = &dst.tbs[i];
-      dst_ind->tbs = src_ind->tbs;
-      dst_ind->frame = src_ind->frame;
-      dst_ind->slot = src_ind->slot;
-      dst_ind->latency = src_ind->latency;
-      dst_ind->crc = src_ind->crc;
-    }*/
-    /*
-    for (uint32_t j = 0; j < src->num_tbs; j++){
-      //dst.tbs_list[j][0] = src->tbs_list[j][0];
-      //dst.tbs_list[j][1] = src->tbs_list[j][1];
-      //dst.tbs_list[j][2] = src->tbs_list[j][2];
-      //dst.tbs_list[j][3] = src->tbs_list[j][3];
-      //dst.tbs_list[j][4] = src->tbs_list[j][4];
-      dst.tbs[j] = src->tbs[j];
-      dst.tbs_frame[j] = src->tbs_frame[j];
-      dst.tbs_slot[j] = src->tbs_slot[j];
-      dst.tbs_latency[j] = src->tbs_latency[j];
-      dst.tbs_crc[j] = src->tbs_crc[j];
-    }
-    
+  for (uint32_t i = 0; i < dst.num_tbs; i++){
+    dst.tbs[i] = cp_tbs_stats_impl(&src->tbs[i]);
   }
-  */
+  
   return dst;
 }
 
@@ -318,143 +290,9 @@ mac_ind_msg_t cp_mac_ind_msg( mac_ind_msg_t const* src)
 
   dst.tstamp = src->tstamp; 
 
+  assert(eq_mac_ind_msg(src, &dst) && "mac_ind_msg src and dst is not equal");
+
   return dst;
-}
-
-bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
-{
-  assert(m0 != NULL);
-  assert(m1 != NULL);
-
-  if(m0->len_ue_stats != m1->len_ue_stats || m0->tstamp != m1->tstamp)
-    return false;
-
-  for(uint32_t i = 0 ; i < m0->len_ue_stats; ++i){
-    mac_ue_stats_impl_t* ue0 = &m0->ue_stats[i]; 
-    mac_ue_stats_impl_t* ue1 = &m1->ue_stats[i]; 
-
-    if(
-        ue0->dl_aggr_tbs != ue1->dl_aggr_tbs ||
-        ue0->ul_aggr_tbs != ue1->ul_aggr_tbs ||
-        ue0->dl_aggr_bytes_sdus != ue1->dl_aggr_bytes_sdus ||
-        ue0->ul_aggr_bytes_sdus != ue1->ul_aggr_bytes_sdus ||
-        ue0->dl_curr_tbs != ue1->dl_curr_tbs ||
-        ue0->ul_curr_tbs != ue1->ul_curr_tbs ||
-        ue0->dl_sched_rb != ue1->dl_sched_rb ||
-        ue0->ul_sched_rb != ue1->ul_sched_rb ||
-        ue0->rnti != ue1->rnti ||
-        ue0->dl_aggr_prb != ue1->dl_aggr_prb ||  
-        ue0->ul_aggr_prb != ue1->ul_aggr_prb ||
-        ue0->dl_aggr_sdus != ue1-> dl_aggr_sdus ||
-        ue0->ul_aggr_sdus != ue1->ul_aggr_sdus ||
-        ue0->dl_aggr_retx_prb != ue1->dl_aggr_retx_prb ||
-        ue0->ul_aggr_retx_prb != ue1->ul_aggr_retx_prb ||
-        ue0->wb_cqi != ue1->wb_cqi || 
-        ue0->dl_mcs1 != ue1->dl_mcs1 ||
-        ue0->ul_mcs1 != ue1->ul_mcs1 ||
-        ue0->dl_mcs2 != ue1->dl_mcs2 || 
-        ue0->ul_mcs2 != ue1->ul_mcs2 || 
-        ue0->phr != ue1->phr || 
-        ue0->bsr != ue1->bsr ||
-        ue0->dl_bler != ue1->dl_bler ||
-        ue0->ul_bler != ue1->ul_bler ||
-        ue0->dl_num_harq != ue1->dl_num_harq ||
-        ue0->dl_harq[0] != ue1->dl_harq[0] ||
-        ue0->dl_harq[1] != ue1->dl_harq[1] ||
-        ue0->dl_harq[2] != ue1->dl_harq[2] ||
-        ue0->dl_harq[3] != ue1->dl_harq[3] ||
-        ue0->dl_harq[4] != ue1->dl_harq[4] ||
-        ue0->ul_num_harq != ue1->ul_num_harq ||
-        ue0->ul_harq[0] != ue1->ul_harq[0] ||
-        ue0->ul_harq[1] != ue1->ul_harq[1] ||
-        ue0->ul_harq[2] != ue1->ul_harq[2] ||
-        ue0->ul_harq[3] != ue1->ul_harq[3] ||
-        ue0->ul_harq[4] != ue1->ul_harq[4] ||
-
-        ue0->num_tbs != ue1->num_tbs ||
-/*        ue0->tbs_1[0] != ue1->tbs_1[0] ||
-        ue0->tbs_1[1] != ue1->tbs_1[1] ||
-        ue0->tbs_1[2] != ue1->tbs_1[2] ||
-        ue0->tbs_1[3] != ue1->tbs_1[3] ||
-        ue0->tbs_1[4] != ue1->tbs_1[4] ||
-
-        ue0->tbs_2[0] != ue1->tbs_2[0] ||
-        ue0->tbs_2[1] != ue1->tbs_2[1] ||
-        ue0->tbs_2[2] != ue1->tbs_2[2] ||
-        ue0->tbs_2[3] != ue1->tbs_2[3] ||
-        ue0->tbs_2[4] != ue1->tbs_2[4] ||
-
-        ue0->tbs_3[0] != ue1->tbs_3[0] ||
-        ue0->tbs_3[1] != ue1->tbs_3[1] ||
-        ue0->tbs_3[2] != ue1->tbs_3[2] ||
-        ue0->tbs_3[3] != ue1->tbs_3[3] ||
-        ue0->tbs_3[4] != ue1->tbs_3[4] ||
-
-        ue0->tbs_4[0] != ue1->tbs_4[0] ||
-        ue0->tbs_4[1] != ue1->tbs_4[1] ||
-        ue0->tbs_4[2] != ue1->tbs_4[2] ||
-        ue0->tbs_4[3] != ue1->tbs_4[3] ||
-        ue0->tbs_4[4] != ue1->tbs_4[4] ||
-
-        ue0->tbs_5[0] != ue1->tbs_5[0] ||
-        ue0->tbs_5[1] != ue1->tbs_5[1] ||
-        ue0->tbs_5[2] != ue1->tbs_5[2] ||
-        ue0->tbs_5[3] != ue1->tbs_5[3] ||
-        ue0->tbs_5[4] != ue1->tbs_5[4] ||
-*/
-        ue0->frame != ue1->frame ||
-        ue0->slot != ue1->slot ||
-        eq_float(ue0->pusch_snr, ue1->pusch_snr, 0.0000001) == false ||
-        eq_float(ue0->pucch_snr, ue0->pucch_snr, 0.0000001) == false 
-      )
-      return false;
-/*    
-    if (ue0->num_tbs > 0){
-      if (ue1->num_tbs != ue0->num_tbs)
-        return false;
-      for (int i = 0; i < ue1->num_tbs; i++){
-        for (int j = 0; j < 5; j++){
-          if (ue1->tbs[i][j] != ue0->tbs[i][j])
-            return false;
-        }
-      }
-    }
-*/    
-    /*if(ue0->num_tbs > 0){
-      if (ue0->num_tbs != ue1->num_tbs){
-        return false;
-      }
-      for (uint32_t j = 0; j < ue0->num_tbs; j++){
-        
-        tbs_stats_t *ue0_ind = &ue0->tbs[i];
-        tbs_stats_t *ue1_ind = &ue1->tbs[i];
-        if (
-      	  ue0_ind->tbs != ue1_ind->tbs ||
-      	  ue0_ind->frame != ue1_ind->frame ||
-      	  ue0_ind->slot != ue1_ind->slot ||
-      	  ue0_ind->latency != ue1_ind->latency ||
-      	  ue0_ind->crc != ue1_ind->crc)
-      	  return false;
-    */    
-        /*
-        if (
-          //ue0->tbs_list[j][0] != ue1->tbs_list[j][0] ||
-          //ue0->tbs_list[j][1] != ue1->tbs_list[j][1] ||
-          //ue0->tbs_list[j][2] != ue1->tbs_list[j][2] ||
-          //ue0->tbs_list[j][3] != ue1->tbs_list[j][3] ||
-          //ue0->tbs_list[j][4] != ue1->tbs_list[j][4])
-          
-          ue0->tbs[j] != ue1->tbs[j] ||
-          ue0->tbs_frame[j] != ue1->tbs_frame[j] ||
-          ue0->tbs_slot[j] != ue1->tbs_slot[j] ||
-          ue0->tbs_latency[j] != ue1->tbs_latency[j] ||
-          ue0->tbs_crc[j] != ue1->tbs_crc[j])
-        */  
-          //return false;
-      //}
-    //}
-  }
-  return true;
 }
 
 //////////////////////////////////////

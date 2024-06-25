@@ -37,7 +37,7 @@ void create_table(sqlite3* db, char* sql)
 }
 
 static
-void create_mac_ue_table(sqlite3* db)
+void create_mac_context_table(sqlite3* db)
 {
   assert(db != NULL);
 
@@ -50,25 +50,9 @@ void create_mac_ue_table(sqlite3* db)
                        "mnc_digit_len INT,"
                        "nb_id INT,"
                        "cu_du_id TEXT,"
-                       "frame INT,"
-                       "slot INT,"
-                       "dl_aggr_tbs INT CHECK(dl_aggr_tbs  >= 0 AND dl_aggr_tbs < 18446744073709551615),"
-                       "ul_aggr_tbs INT CHECK(ul_aggr_tbs  >= 0 AND ul_aggr_tbs < 18446744073709551615),"
-                       "dl_aggr_bytes_sdus  INT CHECK(dl_aggr_bytes_sdus  >= 0 AND dl_aggr_bytes_sdus < 18446744073709551615),"
-                       "ul_aggr_bytes_sdus INT CHECK(ul_aggr_bytes_sdus >= 0 AND ul_aggr_bytes_sdus < 18446744073709551615),"
-                       "dl_curr_tbs INT CHECK(dl_curr_tbs >= 0 AND dl_curr_tbs < 18446744073709551615),"
-                       "ul_curr_tbs INT CHECK(ul_curr_tbs >= 0 AND ul_curr_tbs < 18446744073709551615),"
-                       "dl_sched_rb INT CHECK(dl_sched_rb >= 0 AND dl_sched_rb < 18446744073709551615),"
-                       "ul_sched_rb INT CHECK(ul_sched_rb >= 0 AND ul_sched_rb < 18446744073709551615),"
                        "pusch_snr REAL CHECK(pusch_snr == NULL OR (pusch_snr >= 0 AND pusch_snr < 4294967296)),"
                        "pucch_snr REAL CHECK(pucch_snr == NULL OR (pucch_snr >= 0 AND pucch_snr < 4294967296)) ,"
                        "rnti INT  CHECK(rnti  >= 0 AND rnti < 4294967296 ),"
-                       "dl_aggr_prb INT  CHECK(dl_aggr_prb >= 0 AND dl_aggr_prb < 4294967296 ),"
-                       "ul_aggr_prb INT  CHECK(ul_aggr_prb >= 0 AND ul_aggr_prb < 4294967296 ),"
-                       "dl_aggr_sdus INT  CHECK(dl_aggr_sdus >= 0 AND dl_aggr_sdus < 4294967296 ),"
-                       "ul_aggr_sdus INT  CHECK(ul_aggr_sdus >= 0 AND ul_aggr_sdus < 4294967296 ),"
-                       "dl_aggr_retx_prb  INT  CHECK(dl_aggr_retx_prb >= 0 AND dl_aggr_retx_prb < 4294967296 ),"
-                       "ul_aggr_retx_prb  INT  CHECK(ul_aggr_retx_prb >= 0 AND ul_aggr_retx_prb < 4294967296 ),"
                        "wb_cqi INT  CHECK(wb_cqi >= 0 AND wb_cqi < 256 ),"
                        "dl_mcs1 INT  CHECK(dl_mcs1>= 0 AND dl_mcs1 < 256),"
                        "ul_mcs1  INT CHECK(ul_mcs1 >= 0 AND ul_mcs1 < 256),"
@@ -78,18 +62,6 @@ void create_mac_ue_table(sqlite3* db)
                        "bsr INT CHECK(bsr >= 0 AND  bsr < 4294967296),"
                        "dl_bler REAL CHECK(dl_bler  >= 0 AND dl_bler < 4294967296),"
                        "ul_bler REAL CHECK(ul_bler  >= 0 AND ul_bler < 4294967296),"
-                       "dl_num_harq INT CHECK(dl_num_harq >= 0 AND  dl_num_harq < 5),"
-                       "dl_harq_round0 INT CHECK(dl_harq_round0 >= 0 AND  dl_harq_round0 < 4294967296),"
-                       "dl_harq_round1 INT CHECK(dl_harq_round1 >= 0 AND  dl_harq_round1 < 4294967296),"
-                       "dl_harq_round2 INT CHECK(dl_harq_round2 >= 0 AND  dl_harq_round2 < 4294967296),"
-                       "dl_harq_round3 INT CHECK(dl_harq_round3 >= 0 AND  dl_harq_round3 < 4294967296),"
-                       "dlsch_errors INT CHECK(dlsch_errors >= 0 AND  dlsch_errors < 4294967296),"
-                       "ul_num_harq INT CHECK(ul_num_harq >= 0 AND  ul_num_harq < 5),"
-                       "ul_harq_round0 INT CHECK(ul_harq_round0 >= 0 AND  ul_harq_round0 < 4294967296),"
-                       "ul_harq_round1 INT CHECK(ul_harq_round1 >= 0 AND  ul_harq_round1 < 4294967296),"
-                       "ul_harq_round2 INT CHECK(ul_harq_round2 >= 0 AND  ul_harq_round2 < 4294967296),"
-                       "ul_harq_round3 INT CHECK(ul_harq_round3 >= 0 AND  ul_harq_round3 < 4294967296),"
-                       "ulsch_errors INT CHECK(ulsch_errors >= 0 AND  ulsch_errors < 4294967296)"
                        ");";
 
   create_table(db, sql_mac);
@@ -324,7 +296,7 @@ void insert_db(sqlite3* db, char const* sql)
 
 
 static
-int to_sql_string_mac_ue(global_e2_node_id_t const* id, mac_ue_stats_impl_t* stats, int64_t tstamp, char* out, size_t out_len)
+int to_sql_string_context(global_e2_node_id_t const* id, context_stats_t* stats, uint32_t rnti, int64_t tstamp, char* out, size_t out_len)
 {
   assert(stats != NULL);       
   assert(out != NULL);
@@ -347,25 +319,9 @@ int to_sql_string_mac_ue(global_e2_node_id_t const* id, mac_ue_stats_impl_t* sta
       "%d," //mnc_digit_len   
       "%d," //nb_id 
       "'%s'," //cu_du_id
-      "%d," //frame
-      "%d," //slot
-      "%lu,"//dl_aggr_tbs     
-      "%lu,"//ul_aggr_tbs     
-      "%lu," //dl_aggr_bytes_sdus   
-      "%lu,"//ul_aggr_bytes_sdus       
-      "%lu," //dl_curr_tbs
-      "%lu," //ul_curr_tbs
-      "%lu," //dl_sched_rb
-      "%lu," //ul_sched_rb
       "%g,"// pusch_snr        
       "%g,"//  pucch_snr      
       "%u,"// rnti            
-      "%u,"//dl_aggr_prb      
-      "%u,"//  ul_aggr_prb    
-      "%u,"//  dl_aggr_sdus   
-      "%u,"//  ul_aggr_sdus   
-      "%u,"// dl_aggr_retx_prb
-      "%u,"// ul_aggr_retx_prb
       "%u,"// wb_cqi
       "%u,"// dl_mcs1
       "%u,"// ul_mcs1
@@ -374,45 +330,7 @@ int to_sql_string_mac_ue(global_e2_node_id_t const* id, mac_ue_stats_impl_t* sta
       "%d,"// phr
       "%u,"// bsr
       "%f," // dl_bler
-      "%f," // ul_bler
-      "%d," // dl_num_harq
-      "%u," // dl_harq[0]
-      "%u," // dl_harq[1]
-      "%u," // dl_harq[2]
-      "%u," // dl_harq[3]
-      "%u," // dlsch_errors
-      "%d," // ul_num_harq
-      "%u," // ul_harq[0]
-      "%u," // ul_harq[1]
-      "%u," // ul_harq[2]
-      "%u," // ul_harq[3]
-      "%u" // ulsch_errors
-      /*"%u," // tbs_num
-      "%u," // tbs_1[0]
-      "%u," // tbs_1[1]
-      "%u," // tbs_1[2]
-      "%u," // tbs_1[3]
-      "%u," // tbs_1[4]
-      "%u," // tbs_2[0]
-      "%u," // tbs_2[1]
-      "%u," // tbs_2[2]
-      "%u," // tbs_2[3]
-      "%u"  // tbs_2[4]
-      "%u," // tbs_3[0]
-      "%u," // tbs_3[1]
-      "%u," // tbs_3[2]
-      "%u," // tbs_3[3]
-      "%u," // tbs_3[4]
-      "%u," // tbs_4[0]
-      "%u," // tbs_4[1]
-      "%u," // tbs_4[2]
-      "%u," // tbs_4[3]
-      "%u," // tbs_4[4]
-      "%u," // tbs_5[0]
-      "%u," // tbs_5[1]
-      "%u," // tbs_5[2]
-      "%u," // tbs_5[3]
-      "%u" //  tbs_5[4]*/
+      "%f" // ul_bler
       ");"
       ,tstamp                
       ,id->type
@@ -421,25 +339,9 @@ int to_sql_string_mac_ue(global_e2_node_id_t const* id, mac_ue_stats_impl_t* sta
       ,id->plmn.mnc_digit_len
       ,id->nb_id.nb_id 
       ,id->cu_du_id ? c_cu_du_id : c_null
-      ,stats->frame
-      ,stats->slot
-      ,stats->dl_aggr_tbs    
-      ,stats->ul_aggr_tbs    
-      ,stats->dl_aggr_bytes_sdus      
-      ,stats->ul_aggr_bytes_sdus      
-      ,stats->dl_curr_tbs
-      ,stats->ul_curr_tbs
-      ,stats->dl_sched_rb
-      ,stats->ul_sched_rb
       ,stats->pusch_snr      
       ,stats->pucch_snr      
-      ,stats->rnti 
-      ,stats->dl_aggr_prb    
-      ,stats->ul_aggr_prb    
-      ,stats->dl_aggr_sdus   
-      ,stats->ul_aggr_sdus   
-      ,stats->dl_aggr_retx_prb        
-      ,stats->ul_aggr_retx_prb
+      ,rnti 
       ,stats->wb_cqi         
       ,stats->dl_mcs1        
       ,stats->ul_mcs1        
@@ -449,46 +351,36 @@ int to_sql_string_mac_ue(global_e2_node_id_t const* id, mac_ue_stats_impl_t* sta
       ,stats->bsr
       ,stats->dl_bler
       ,stats->ul_bler
-      ,stats->dl_num_harq
-      ,stats->dl_harq[0]
-      ,stats->dl_harq[1]
-      ,stats->dl_harq[2]
-      ,stats->dl_harq[3]
-      ,stats->dl_harq[4]
-      ,stats->ul_num_harq
-      ,stats->ul_harq[0]
-      ,stats->ul_harq[1]
-      ,stats->ul_harq[2]
-      ,stats->ul_harq[3]
-      ,stats->ul_harq[4]
-      /*,stats->num_tbs
-      ,stats->tbs_1[0]
-      ,stats->tbs_1[1]
-      ,stats->tbs_1[2]
-      ,stats->tbs_1[3]
-      ,stats->tbs_1[4]
-      ,stats->tbs_2[0]
-      ,stats->tbs_2[1]
-      ,stats->tbs_2[2]
-      ,stats->tbs_2[3]
-      ,stats->tbs_2[4]
-      ,stats->tbs_3[0]
-      ,stats->tbs_3[1]
-      ,stats->tbs_3[2]
-      ,stats->tbs_3[3]
-      ,stats->tbs_3[4]
-      ,stats->tbs_4[0]
-      ,stats->tbs_4[1]
-      ,stats->tbs_4[2]
-      ,stats->tbs_4[3]
-      ,stats->tbs_4[4]
-      ,stats->tbs_5[0]
-      ,stats->tbs_5[1]
-      ,stats->tbs_5[2]
-      ,stats->tbs_5[3]
-      ,stats->tbs_5[4]*/
       );
-  assert(rc < (int)max && "Not enough space in the char array to write all the data");
+  assert(rc < (int)max && "Not enough space in the char array to write all the context data");
+  return rc;
+}
+
+static
+int to_sql_string_tbs(global_e2_node_id_t const* id, mac_tbs_stats_t* stats, int64_t tstamp, char* out, size_t out_len)
+{
+  assert(stats != NULL);       
+  assert(out != NULL);
+  const size_t max = 3072;
+  assert(out_len >= max);
+
+  int rc = snprintf(out, max, 
+      "INSERT INTO MAC_UE VALUES("
+      "%ld,"//tstamp
+      "%g,"// tbs        
+      "%g,"// frame      
+      "%u,"// slot           
+      "%u,"// latency
+      "%u"//  crc
+      ");"
+      ,tstamp                
+      ,stats->tbs      
+      ,stats->frame      
+      ,stats->slot         
+      ,stats->latency       
+      ,stats->crc
+      );
+  assert(rc < (int)max && "Not enough space in the char array to write all the tbs data");
   return rc;
 }
 
@@ -1078,6 +970,39 @@ int to_sql_string_gtp_NGUT(global_e2_node_id_t const* id,gtp_ngu_t_stats_t* gtp,
 // }
 
 static
+void write_context_stats(sqlite3* db, global_e2_node_id_t const* id, uint32_t rnti, int64_t tstamp, context_stats_t const* ind )
+{
+  char buffer[4096] = {0};
+  int pos = 0;
+
+  pos += to_sql_string_context(id, ind, rnti, tstamp, buffer + pos, 4096 - pos);
+  insert_db(db, buffer);
+}
+
+static
+void write_tbs_stats(sqlite3* db, global_e2_node_id_t const* id, int64_t tstamp, mac_tbs_stats_t const* ind )
+{
+  char buffer[4096] = {0};
+  int pos = 0;
+
+  pos += to_sql_string_tbs(id, ind, tstamp, buffer + pos, 4096 - pos);
+  insert_db(db, buffer);
+}
+
+static
+void write_ue_stats(sqlite3* db, global_e2_node_id_t const* id, int64_t tstamp, mac_ue_stats_impl_t const* ind )
+{
+  assert(db != NULL);
+  assert(ind != NULL);
+  
+  write_context_stats(db, id, tstamp, &ind->context);
+
+  for(size_t i = 0; i < ind->num_tbs; ++i){
+    write_tbs_stats(db, id, tstamp, &ind->tbs[i]);
+  }
+}
+
+static
 void write_mac_stats(sqlite3* db, global_e2_node_id_t const* id, mac_ind_data_t const* ind )
 {
   assert(db != NULL);
@@ -1085,14 +1010,9 @@ void write_mac_stats(sqlite3* db, global_e2_node_id_t const* id, mac_ind_data_t 
 
   mac_ind_msg_t const* ind_msg_mac = &ind->msg; 
 
-  char buffer[2048] = {0};
-  int pos = 0;
-
   for(size_t i = 0; i < ind_msg_mac->len_ue_stats; ++i){
-    pos += to_sql_string_mac_ue(id, &ind_msg_mac->ue_stats[i], ind_msg_mac->tstamp, buffer + pos, 2048 - pos);
+    write_ue_stats(db, id, ind_msg_mac->tstamp, &ind_msg_mac->ue_stats[i]);
   }
-
-  insert_db(db, buffer);
 }
 
 static
@@ -1253,7 +1173,8 @@ void init_db_sqlite3(sqlite3** db, char const* db_filename)
   //////
   // MAC
   //////
-  create_mac_ue_table(*db);
+  create_mac_context_table(*db);
+  create_mac_tbs_table(*db);
 
   //////
   // RLC
