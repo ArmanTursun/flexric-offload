@@ -42,10 +42,13 @@ sm_ag_if_ans_t write_ctrl_mac_sm(void const* data)
 
   assert(ctrl->hdr.dummy == 1);
   assert(ctrl->msg.action == 42);
-  if (ctrl->msg.offload > 0){
-    printf("offload control: %d \n", ctrl->msg.offload);
+  if (msg->num_ues > 0){
+    printf("Ctrl ues: %u \n", msg->num_ues);
+    for (uint32_t i = 0; i < msg->num_ues; i++){
+      printf("UE = %u, offload = %u \n", msg->ues[i].rnti, msg->ues[i].offload);
+    }
   } else {
-    printf("Does not offload \n");
+    printf("No Ctrl UEs \n");
   }
 
   sm_ag_if_ans_t ans = {.type = CTRL_OUTCOME_SM_AG_IF_ANS_V0 };

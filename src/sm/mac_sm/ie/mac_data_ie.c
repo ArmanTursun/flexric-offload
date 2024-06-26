@@ -442,7 +442,7 @@ mac_ctrl_msg_t cp_mac_ctrl_msg(mac_ctrl_msg_t* src)
 
   dst.tms = src->tms;
 
-  assert(eq_mac_ind_msg(src, &dst) && "mac_ctrl_msg src and dst is not equal");
+  assert(eq_mac_ctrl_msg(src, &dst) && "mac_ctrl_msg src and dst is not equal");
 
   return dst;
 }

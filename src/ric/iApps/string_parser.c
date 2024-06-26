@@ -42,8 +42,7 @@ void to_string_mac_ue_stats(mac_ue_stats_impl_t* stats, int64_t tstamp, char* ou
   char temp[2048] = {0};
   size_t sz = 0;
 
-  if (stats->num_tbs >= 0) {
-    int rc = snprintf(temp, out_len,  "mac_stats: "
+  int rc = snprintf(temp, out_len,  "mac_stats: "
                       "tstamp=%ld"
                       ",rnti=%u"
                       ",num_tbs=%u"
@@ -73,11 +72,11 @@ void to_string_mac_ue_stats(mac_ue_stats_impl_t* stats, int64_t tstamp, char* ou
                       , stats->context.ul_mcs2
                       , stats->context.phr
                       );
-    assert(rc < (int)max && "Not enough space in the char array to write all the data");
+  assert(rc < (int)max && "Not enough space in the char array to write all the data");
 
-    memcpy(out, temp, strlen(temp));
-    sz += strlen(temp);
-  }
+  memcpy(out, temp, strlen(temp));
+  sz += strlen(temp);
+  
 
   for(uint32_t i = 0; i < stats->num_tbs; ++i) {
     mac_tbs_stats_t* tbs = &stats->tbs[i];

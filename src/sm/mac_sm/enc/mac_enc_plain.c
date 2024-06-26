@@ -285,17 +285,76 @@ byte_array_t mac_enc_ctrl_hdr_plain(mac_ctrl_hdr_t const* ctrl_hdr)
   return ba;
 }
 
+
+////////////////// ctrl msg
+static
+uint8_t* ctrl_end;
+
+static
+size_t cal_ctrl_ue_msg(mac_ue_ctrl_t const* ue)
+{
+  assert(ue != NULL);
+
+  size_t sz = sizeof(ue->rnti);
+  sz += sizeof(ue->offload);
+
+  return sz;
+}
+
+static inline
+size_t fill_ue(uint8_t* it, mac_ue_ctrl_t* ue)
+{
+  assert(it != NULL);
+  assert(ue != NULL);
+
+  assert(it < ctrl_end && "could not fill more ues to ctrl msg");
+
+  memcpy(it, &ue->rnti, sizeof(ue->rnti));
+  it += sizeof(ue->rnti);
+  size_t sz = sizeof(ue->rnti);
+
+  memcpy(it, &ue->offload, sizeof(ue->offload));
+  it += sizeof(ue->offload);
+  sz += sizeof(ue->offload);
+
+  return sz;
+}
+
 byte_array_t mac_enc_ctrl_msg_plain(mac_ctrl_msg_t const* ctrl_msg)
 {
   assert(ctrl_msg != NULL);
 
-  byte_array_t  ba = {0};
-  ba.len = sizeof(mac_ctrl_msg_t);
-  ba.buf = calloc(ba.len, sizeof(uint8_t)); 
-  assert(ba.buf != NULL);
+  byte_array_t ba = {0};
 
-  memcpy(ba.buf, ctrl_msg, ba.len);
+  size_t sz = sizeof(ctrl_msg->action);
+  sz += sizeof(ctrl_msg->num_ues);
+  for (uint32_t i = 0; i < ctrl_msg->num_ues; i++){
+    sz += cal_ctrl_ue_msg(&ctrl_msg->ues[i]);
+  }
+  sz += sizeof(ctrl_msg->tms);
+  
+  ba.buf = malloc(sz);
+  assert(ba.buf != NULL && "Memory exhausted");
+  end = ba.buf + sz;
 
+  uint8_t* it = ba.buf;
+  memcpy(it, &ctrl_msg->action, sizeof(ctrl_msg->action));
+  it += sizeof(ctrl_msg->action);
+
+  memcpy(it, &ctrl_msg->num_ues, sizeof(ctrl_msg->num_ues));
+  it += sizeof(ctrl_msg->num_ues);
+
+  for(uint32_t i = 0; i < ctrl_msg->num_ues; ++i){
+    size_t pos1 = fill_ue(it, &ctrl_msg->ues[i]);
+    it += pos1;
+  }
+
+  memcpy(it, &ctrl_msg->tms, sizeof(ctrl_msg->tms));
+  it += sizeof(ctrl_msg->tms);
+  
+  assert(it == ba.buf + sz && "Data layout mismacth");
+
+  ba.len = sz;
   return ba;
 }
 

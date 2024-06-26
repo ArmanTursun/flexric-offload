@@ -209,12 +209,53 @@ mac_ctrl_hdr_t mac_dec_ctrl_hdr_plain(size_t len, uint8_t const ctrl_hdr[len])
   return ret;
 }
 
+static inline
+size_t fill_ue(mac_ue_ctrl_t* ue, uint8_t const* it)
+{
+  assert(it != NULL);
+  assert(ue != NULL);
+
+  memcpy(&ue->rnti, it, sizeof(ue->rnti));
+  it += sizeof(ue->rnti);
+  size_t sz = sizeof(ue->rnti);
+
+  memcpy(&ue->offload, it, sizeof(ue->offload));
+  it += sizeof(ue->offload);
+  sz += sizeof(ue->offload);
+
+  return sz;
+}
+
 mac_ctrl_msg_t mac_dec_ctrl_msg_plain(size_t len, uint8_t const ctrl_msg[len])
 {
-  assert(len == sizeof(mac_ctrl_msg_t)); 
-  mac_ctrl_msg_t ret;
-  memcpy(&ret, ctrl_msg, len);
-  return ret;
+  mac_ctrl_msg_t ctrl = {0};
+
+  uint8_t const* it = ctrl_msg;
+
+  memcpy(&ctrl.action, it, sizeof(ctrl.action));
+  it += sizeof(ctrl.action);
+  size_t sz = sizeof(ctrl.action);
+
+  memcpy(&ctrl.num_ues, it, sizeof(ctrl.num_ues));
+  it += sizeof(ctrl.num_ues);
+  sz += sizeof(ctrl.num_ues);
+
+  if(ctrl.num_ues > 0){
+    ctrl.ues = calloc(ctrl.num_ues, sizeof(mac_ue_ctrl_t));
+    assert(ctrl.ues != NULL && "memory exhausted");
+  }
+  
+  for(uint32_t i = 0; i < ctrl.num_ues; ++i){
+    sz = fill_ue(&ctrl.ues[i], it);
+    it += sz;
+  }
+  
+  memcpy(&ctrl.tms, it, sizeof(ctrl.tms));
+  it += sizeof(ctrl.tms);
+  
+  assert(it == ctrl_msg + len && "data layout mismacth");
+
+  return ctrl;
 }
 
 mac_ctrl_out_t mac_dec_ctrl_out_plain(size_t len, uint8_t const ctrl_out[len]) 
