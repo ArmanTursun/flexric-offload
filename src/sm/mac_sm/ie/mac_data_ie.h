@@ -182,14 +182,15 @@ typedef struct {
 
 typedef struct {
   uint32_t action;
+  uint32_t num_ues;
   mac_ue_ctrl_t* ues;
   int64_t tms;
 } mac_ctrl_msg_t;
 
 void free_mac_ctrl_msg( mac_ctrl_msg_t* src); 
-
+mac_ue_ctrl_t cp_mac_ue_ctrl(mac_ue_ctrl_t* src);
 mac_ctrl_msg_t cp_mac_ctrl_msg(mac_ctrl_msg_t* src);
-
+bool eq_ue_ctrl_msg(mac_ue_ctrl_t* m0, mac_ue_ctrl_t* m1);
 bool eq_mac_ctrl_msg(mac_ctrl_msg_t* m0, mac_ctrl_msg_t* m1);
 
 

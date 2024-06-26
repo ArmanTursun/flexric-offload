@@ -375,8 +375,49 @@ void free_mac_ctrl_msg( mac_ctrl_msg_t* src)
 {
   assert(src != NULL);
 
-  //assert(0!=0 && "Not implemented" );
+  if (src->num_ues > 0){
+    free(src->ues);
+  }
+
   free(src);
+}
+
+bool eq_ue_ctrl_msg(mac_ue_ctrl_t* m0, mac_ue_ctrl_t* m1){
+  assert(m0 != NULL);
+  assert(m1 != NULL);
+
+  if (m0->rnti != m1->rnti || m0->offload != m1->offload)
+    return false;
+  return true;
+}
+
+bool eq_mac_ctrl_msg(mac_ctrl_msg_t* m0, mac_ctrl_msg_t* m1)
+{
+  assert(m0 != NULL);
+  assert(m1 != NULL);
+
+  if(m0->action != m1->action || m0->tms != m1->tms || m0->num_ues != m1->num_ues)
+    return false;
+
+  if (m0->num_ues > 0){
+    for (uint32_t i = 0; i < m0->num_ues; i++){
+      if (!eq_ue_ctrl_msg(&m0->ues[i], &m1->ues[i]))
+        return false;
+    }
+  }
+
+  return true;
+}
+
+mac_ue_ctrl_t cp_mac_ue_ctrl(mac_ue_ctrl_t* src){
+{
+  assert(src != NULL);
+  mac_ue_ctrl_t dst = {0};
+
+  dst.rnti = src->rnti;
+  dst.offload = src->offload;
+  return dst;
+}
 }
 
 mac_ctrl_msg_t cp_mac_ctrl_msg(mac_ctrl_msg_t* src)
@@ -388,24 +429,22 @@ mac_ctrl_msg_t cp_mac_ctrl_msg(mac_ctrl_msg_t* src)
   //return ret;
   mac_ctrl_msg_t dst = {0};
   dst.action = src->action;
-  dst.offload = src->offload;
-  dst.tms = src->tms;
-  return dst;
-}
+  dst.num_ues = src->num_ues;
 
-bool eq_mac_ctrl_msg(mac_ctrl_msg_t* m0, mac_ctrl_msg_t* m1)
-{
-  assert(m0 != NULL);
-  assert(m1 != NULL);
-
-  //assert(0!=0 && "Not implemented" );
-
-  //return true;
-  if (m0->action != m1->action || m0->offload != m1->offload || 
-    m0->tms != m1->tms) {
-    return false;
+  if (dst.num_ues > 0){
+    dst.ues = calloc(dst.num_ues, sizeof( mac_ue_ctrl_t) );
+    assert(dst.ues != NULL && "Memory exhausted");
   }
-  return true;
+
+  for (uint32_t i = 0; i < dst.num_ues; i++){
+    dst.ues[i] = cp_mac_ue_ctrl(&src->ues[i]);
+  }
+
+  dst.tms = src->tms;
+
+  assert(eq_mac_ind_msg(src, &dst) && "mac_ctrl_msg src and dst is not equal");
+
+  return dst;
 }
 
 
