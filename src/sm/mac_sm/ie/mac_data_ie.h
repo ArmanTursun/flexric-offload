@@ -182,7 +182,7 @@ typedef struct {
 
 typedef struct {
   uint32_t action;
-  mac_ue_ctrl_t ues;
+  mac_ue_ctrl_t* ues;
   int64_t tms;
 } mac_ctrl_msg_t;
 
