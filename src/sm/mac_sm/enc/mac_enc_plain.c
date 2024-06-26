@@ -335,7 +335,7 @@ byte_array_t mac_enc_ctrl_msg_plain(mac_ctrl_msg_t const* ctrl_msg)
   
   ba.buf = malloc(sz);
   assert(ba.buf != NULL && "Memory exhausted");
-  end = ba.buf + sz;
+  ctrl_end = ba.buf + sz;
 
   uint8_t* it = ba.buf;
   memcpy(it, &ctrl_msg->action, sizeof(ctrl_msg->action));
