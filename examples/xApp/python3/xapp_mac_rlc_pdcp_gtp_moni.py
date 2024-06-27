@@ -27,8 +27,13 @@ class MACCallback(ric.mac_cb):
             def fill_mac_ctrl_msg(ctrl_msg):
                 msg = ric.mac_ctrl_msg_t()
                 msg.action = 42
-                msg.offload = ctrl_msg["offload"]
                 msg.tms = time.time_ns() / 1000.0
+                msg.num_ues = 3
+                ues = ric.mac_ue_ctrl_array(msg.num_ues) ## define array and it's lenth
+                for i in range(msg.num_ues):
+                    ues[i].rnti = i
+                    ues[i].offload = 1
+                msg.ues = ues
                 return msg
             t_now = time.time_ns() / 1000.0
             t_mac = ind.tstamp / 1.0
@@ -76,7 +81,7 @@ class MACCallback(ric.mac_cb):
                 #iprint('[xApp Monitor]: TBS = ' + str(ue_context.ul_curr_tbs) +  ', latency = ' + str(t_diff) + ' μs' +  ', timestamp = ' + str(ind.tstamp))
                 ctrl = fill_mac_ctrl_msg(self.ldpc_offload)
                 #print(ctrl.tms, tbs)
-                print('[xApp Control]: TBS = ' + str(ue_context.ul_curr_tbs) +  ', timestamp = ' + str(ctrl.tms))
+                print('[xApp Control]: num_ues = ' + str(ctrl.num_ues) + ' timestamp = ' + str(ctrl.tms))
                 ric.control_mac_sm(conn[i].id, ctrl)
                 #print(ctrl.tms)
             #self.tbs = tbs

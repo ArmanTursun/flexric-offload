@@ -156,25 +156,19 @@ void sm_cb_mac(sm_ag_if_rd_t const* rd)
 
   swig_mac_ind_msg_t ind;
   ind.tstamp = data->msg.tstamp;
+  ind.len_ue_stats = data->msg.len_ue_stats;
 
   for(uint32_t i = 0; i < data->msg.len_ue_stats; ++i){
-      //swig_mac_ue_stats_impl_t tmp = cp_ue_stats_half(&data->msg.ue_stats[i]);
-      mac_ue_stats_impl_t tmp = cp_mac_ue_stats_impl(&data->msg.ue_stats[i]) ;
-     /* mac_ue_stats_impl_t* src = &data->msg.ue_stats[i];
-      for (uint32_t j = 0; j < tmp.num_tbs; j++){
-        tbs_stats_t tbs_tmp;
-        tbs_stats_t* tbs_src = &src->tbs[j];
-        tbs_tmp.tbs = tbs_src->tbs;
-        tbs_tmp.frame = tbs_src->frame;
-        tbs_tmp.slot = tbs_src->slot;
-        tbs_tmp.latency = tbs_src->latency;
-        tbs_tmp.crc = tbs_src->crc;
-        tmp.tbs.emplace_back(tbs_tmp);
-      }
-      */
-      //cp_ue_stats();
-      ind.ue_stats.emplace_back(tmp);
-      //ind.ue_stats.emplace_back(tmp);
+    swig_mac_ue_stats_impl_t temp;
+    mac_ue_stats_impl_t const* ue_src = &data->msg.ue_stats[i];
+    temp.rnti = data->msg.ue_stats[i].rnti;
+    temp.num_tbs = data->msg.ue_stats[i].num_tbs;
+    temp.context = cp_context_stats_impl(&ue_src->context);
+    for (uint32_t j = 0; j < temp.num_tbs; j++){
+      mac_tbs_stats_t temp_tbs = cp_tbs_stats_impl(&ue_src->tbs[j]);
+      temp.tbs.emplace_back(temp_tbs);
+    }
+    ind.ue_stats.emplace_back(temp);
   }
 
 #ifdef XAPP_LANG_PYTHON

@@ -99,8 +99,9 @@ namespace std {
   %template(IntVector) vector<int>;
   %template(E2NodeVector) vector<E2Node>;
   %template(RANVector) vector<ran_function_t>;
-  //%template(TBSStatsVector) vector<tbs_stats_t>;
-  %template(MACStatsVector) vector<mac_ue_stats_impl_t>;
+  //%template(MACStatsVector) vector<mac_ue_stats_impl_t>;
+  %template(MAC_UEVector) vector<swig_mac_ue_stats_impl_t>;
+  %template(MAC_TBSVector) vector<mac_tbs_stats_t>;
   %template(RLC_RBStatsVector) vector<rlc_radio_bearer_stats_t>;
   %template(PDCP_RBStatsVector) vector<pdcp_radio_bearer_stats_t>;
   %template(StringVector) vector<std::string>;
@@ -111,6 +112,7 @@ namespace std {
 
 
 //%array_class(uint32_t, del_dl_array);
+%array_class(mac_ue_ctrl_t, mac_ue_ctrl_array);
 %array_class(ue_slice_assoc_t, ue_slice_assoc_array);
 %array_class(fr_slice_t, slice_array);
 %array_class(uint32_t, del_dl_array);
