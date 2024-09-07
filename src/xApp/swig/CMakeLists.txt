@@ -85,8 +85,12 @@ if(XAPP_TARGET_LANGUAGE STREQUAL "PYTHON_LANG")
    add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_BINARY_DIR}/xapp_sdk.py" "${CMAKE_BINARY_DIR}/examples/xApp/python3/xapp_sdk.py" )
 
    add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
-     "${CMAKE_SOURCE_DIR}/examples/xApp/python3/xapp_mac_rlc_pdcp_gtp_moni.py"
-     "${CMAKE_BINARY_DIR}/examples/xApp/python3/xapp_mac_rlc_pdcp_gtp_moni.py" )
+     "${CMAKE_SOURCE_DIR}/examples/xApp/python3/xapp_drl.py"
+     "${CMAKE_BINARY_DIR}/examples/xApp/python3/xapp_drl.py" )
+   
+   add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+     "${CMAKE_SOURCE_DIR}/examples/xApp/python3/aggr_data.py"
+     "${CMAKE_BINARY_DIR}/examples/xApp/python3/aggr_data.py" )
 
    add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
      "${CMAKE_SOURCE_DIR}/examples/xApp/python3/xapp_slice_moni_ctrl.py" "${CMAKE_BINARY_DIR}/examples/xApp/python3/xapp_slice_moni_ctrl.py" )
