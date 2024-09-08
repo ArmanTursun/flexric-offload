@@ -6,6 +6,16 @@ from ddpg import DDPG
 from ou_noise import OUNoise
 import numpy as np
 
+#################################
+###  TODO
+###  1. stats are {} -> np
+###  2. ric ctril handle stats
+###  3. reward function
+###  4. ddpg for states
+###  5. check actor and critic
+###  6. make sure drl can run
+################################
+
 #############################
 #### Global Variables
 #############################
@@ -137,8 +147,7 @@ def run_drl(stop_event):
         ddpg_agent.remember(current_state, action, reward, False, next_state)
 
         # Train the DDPG agent with a batch of experiences
-        if len(ddpg_agent._memory) > batch_size:
-            ddpg_agent.train(batch_size)
+        ddpg_agent.train(batch_size)
 
         # Update the previous state for the next iteration
         current_bler = next_bler

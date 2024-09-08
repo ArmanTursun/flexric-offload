@@ -105,9 +105,7 @@ class AggrData():
             return {
                 'mean': self.aggr_bler['mean'],
                 'max': self.aggr_bler['max'],
-                'min': self.aggr_bler['min'],
-                'num': self.aggr_bler['num'],
-                'sum': self.aggr_bler['sum']
+                'min': self.aggr_bler['min']
             }
         
         """Get current BLER statistics only if the first element's timestamp is later than the given timestamp"""
@@ -115,9 +113,7 @@ class AggrData():
             return {
                 'mean': self.aggr_bler['mean'],
                 'max': self.aggr_bler['max'],
-                'min': self.aggr_bler['min'],
-                'num': self.aggr_bler['num'],
-                'sum': self.aggr_bler['sum']
+                'min': self.aggr_bler['min']
             }
         
         return None
@@ -127,9 +123,7 @@ class AggrData():
             return {
                 'mean': self.aggr_enrg['mean'],
                 'max': self.aggr_enrg['max'],
-                'min': self.aggr_enrg['min'],
-                'num': self.aggr_enrg['num'],
-                'sum': self.aggr_enrg['sum']
+                'min': self.aggr_enrg['min']
             }
         
         """Get current energy statistics only if the first element's timestamp is later than the given timestamp"""
@@ -137,9 +131,7 @@ class AggrData():
             return {
                 'mean': self.aggr_enrg['mean'],
                 'max': self.aggr_enrg['max'],
-                'min': self.aggr_enrg['min'],
-                'num': self.aggr_enrg['num'],
-                'sum': self.aggr_enrg['sum']
+                'min': self.aggr_enrg['min']
             }
         return None
 
