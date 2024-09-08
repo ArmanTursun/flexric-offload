@@ -1,105 +1,128 @@
-from keras.layers import Dense, Input, Add
-from keras.models import Model
-from keras.optimizers import Adam
-import tensorflow as tf
+import torch
+import torch.nn as nn
+import torch.optim as optim
 
-class Critic(object):
-    def __init__(self, state_size, action_size,
-                 hidden_units=(300, 600), learning_rate=0.0001, batch_size=64,
-                 tau=0.001):
+class Critic(nn.Module):
+    def __init__(self, state_size, action_size, hidden_units=(300, 600), learning_rate=0.0001, tau=0.001):
         """
-        Constructor for the Critic network
+        Constructor for the Critic network in PyTorch
+
+        Args:
+        - state_size (int): Dimension of the input state (e.g., 8 for BLER and energy).
+        - action_size (int): Dimension of the input action (e.g., 3 for weights).
+        - hidden_units (tuple): Number of hidden units in each layer. Default: (300, 600).
+        - learning_rate (float): Learning rate for training the model. Default: 0.0001.
+        - tau (float): Soft update rate for the target network. Default: 0.001.
         """
-        # Store parameters
-        self._batch_size = batch_size
-        self._tau = tau
-        self._learning_rate = learning_rate
-        self._hidden = hidden_units
-        self._state_size = state_size
-        self._action_size = action_size
+        super(Critic, self).__init__()
 
-        # Generate the main model
-        self._model, self._state_input, self._action_input = self._generate_model()
-        # Generate a carbon copy of the model so that we avoid divergence
-        self._target_model, _, _ = self._generate_model()
+        self.state_size = state_size
+        self.action_size = action_size
+        self.hidden_units = hidden_units
+        self.tau = tau
+        
+        # State pathway
+        self.fc1_state = nn.Linear(state_size, hidden_units[0])
+        
+        # Action pathway
+        self.fc1_action = nn.Linear(action_size, hidden_units[0])
 
-        # Define the optimization function
-        self._optimizer = tf.keras.optimizers.Adam(learning_rate=self._learning_rate)
+        # Combined pathway
+        self.fc2 = nn.Linear(hidden_units[0], hidden_units[1])
+        self.fc3 = nn.Linear(hidden_units[1], 1)  # Output a single Q-value
+        
+        # Initialize optimizer
+        self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
 
-    def get_gradients(self, states, actions):
+    def forward(self, state, action):
         """
-        Returns the gradients of the actions with respect to the Q-values.
+        Forward pass for the Critic network.
+
+        Args:
+        - state (torch.Tensor): Input state tensor of shape (batch_size, state_size).
+        - action (torch.Tensor): Input action tensor of shape (batch_size, action_size).
+
+        Returns:
+        - q_value (torch.Tensor): Output Q-value tensor of shape (batch_size, 1).
         """
-        # Convert NumPy arrays to TensorFlow tensors
-        states = tf.convert_to_tensor(states, dtype=tf.float32)
-        actions = tf.convert_to_tensor(actions, dtype=tf.float32)
-        #print(f"States shape (in get_gradients): {states.shape}")
-        #print(f"Actions shape (in get_gradients): {actions.shape}")
+        # Pass state through the state pathway
+        state_out = torch.relu(self.fc1_state(state))
+        
+        # Pass action through the action pathway
+        action_out = torch.relu(self.fc1_action(action))
 
-        with tf.GradientTape() as tape:
-            tape.watch(actions)
-            q_values = self._model([states, actions])
-        action_gradients = tape.gradient(q_values, actions)
-        #print(f"Action gradients shape: {action_gradients.shape}")
-        return action_gradients
+        # Combine state and action outputs by adding them
+        combined = state_out + action_out
+        
+        # Pass through the combined layers
+        x = torch.relu(self.fc2(combined))
+        q_value = self.fc3(x)  # Output a single Q-value
 
+        return q_value
 
     def train(self, states, actions, q_targets):
         """
         Trains the Critic network.
+
+        Args:
+        - states (torch.Tensor): Input states of shape (batch_size, state_size).
+        - actions (torch.Tensor): Input actions of shape (batch_size, action_size).
+        - q_targets (torch.Tensor): Target Q-values of shape (batch_size, 1).
+
+        Returns:
+        - loss_value (float): The loss value after training.
         """
-        #print(f"Training Critic - States shape: {states.shape}")
-        #print(f"Training Critic - Actions shape: {actions.shape}")
-        #print(f"Training Critic - Q targets shape: {q_targets.shape}")
+        self.optimizer.zero_grad()
+        q_values = self.forward(states, actions)
+        loss = nn.MSELoss()(q_values, q_targets)
+        loss.backward()
+        self.optimizer.step()
 
-        with tf.GradientTape() as tape:
-            q_values = self._model([states, actions])
-            #print(f"Q values shape: {q_values.shape}")  # Add debug for q_values
+        return loss.item()
 
-            # Ensure q_targets and q_values have the same shape
-            if q_targets.shape != q_values.shape:
-                #print(f"Reshaping Q targets from {q_targets.shape} to {q_values.shape}")
-                q_targets = tf.reshape(q_targets, q_values.shape)
-
-            loss = tf.keras.losses.MeanSquaredError()(q_targets, q_values)
-    
-        critic_gradients = tape.gradient(loss, self._model.trainable_variables)
-        self._optimizer.apply_gradients(zip(critic_gradients, self._model.trainable_variables))
-        return loss.numpy() 
-    
-    def train_target_model(self):
+    def _soft_update(self, target_model, tau=None):
         """
-        Updates the weights of the target network to slowly track the main network.
+        Soft update of the target model parameters using the main model's parameters.
+        
+        Args:
+        - target_model (Critic): The target critic model to be updated.
+        - tau (float): Soft update parameter. If None, the class's tau value is used.
         """
-        main_weights = self._model.get_weights()
-        target_weights = self._target_model.get_weights()
-        target_weights = [self._tau * main_weight + (1 - self._tau) * target_weight 
-                          for main_weight, target_weight in zip(main_weights, target_weights)]
-        self._target_model.set_weights(target_weights)
-        #print("Target model weights updated.")
+        if tau is None:
+            tau = self.tau
+        for target_param, param in zip(target_model.parameters(), self.parameters()):
+            target_param.data.copy_(tau * param.data + (1.0 - tau) * target_param.data)
 
-    def _generate_model(self):
+    def update_target_model(self, target_model):
         """
-        Generates the model based on the hyperparameters defined in the constructor.
+        Update the target network using the soft update method.
         """
-        state_input_layer = Input(shape=[self._state_size])
-        action_input_layer = Input(shape=[self._action_size])
+        self._soft_update(target_model)
 
-        # State pathway
-        s_layer = Dense(self._hidden[0], activation='relu')(state_input_layer)
+'''
+# Example usage with BLER and Energy states (mean, max, min, skewness)
+bler_state = [0.1, 0.2, 0.05, 0.1]  # Example BLER state (mean, max, min, skewness)
+energy_state = [1.0, 1.5, 0.8, 0.05]  # Example Energy state (mean, max, min, skewness)
 
-        # Action pathway
-        a_layer = Dense(self._hidden[0], activation='linear')(action_input_layer)
+# Concatenate BLER and energy states
+state = bler_state + energy_state  # Total state size = 8
+state_size = len(state)  # 8
+action_size = 2  # Example number of actions (weights)
 
-        # Combine state and action pathways
-        combined = Add()([s_layer, a_layer])
-        hidden = Dense(self._hidden[1], activation='relu')(combined)
+# Create the critic network
+critic = Critic(state_size, action_size)
 
-        # Output layer
-        output_layer = Dense(1, activation='linear')(hidden)
+# Create a separate target critic network
+target_critic = Critic(state_size, action_size)
 
-        # Create the model
-        model = Model(inputs=[state_input_layer, action_input_layer], outputs=output_layer)
-        model.compile(loss='mse', optimizer=Adam(lr=self._learning_rate))
+# Example: Convert state and action to PyTorch tensors and perform a forward pass
+state_tensor = torch.FloatTensor([state])  # Shape (1, 8)
+action_tensor = torch.FloatTensor([[0.45, 0.55]])  # Example action (weights), shape (1, 3)
 
-        return model, state_input_layer, action_input_layer
+# Get Q-value from the critic network
+q_value = critic(state_tensor, action_tensor)
+print(q_value)
+
+# Soft update target critic network from the critic network
+critic.update_target_model(target_critic)
+'''

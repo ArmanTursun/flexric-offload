@@ -1,6 +1,4 @@
 import numpy as np
-import torch
-from networks.actor import Actor
 
 class OUNoise:
     def __init__(self, action_size, mu=0, theta=0.15, sigma=0.2, decay_rate=0.99):
@@ -40,31 +38,3 @@ class OUNoise:
         """
         self.sigma *= self.decay_rate  # Reduce sigma with the decay rate
         self.sigma = max(self.sigma, 0.01)  # Ensure sigma doesn't go below a small threshold
-
-'''
-# Example usage with BLER and Energy states (mean, max, min, skewness)
-bler_state = [0.1, 0.2, 0.05, 0.1]  # Example BLER state (mean, max, min, skewness)
-energy_state = [1.0, 1.5, 0.8, 0.05]  # Example Energy state (mean, max, min, skewness)
-
-# Concatenate BLER and energy states
-state = bler_state + energy_state  # Total state size = 8
-state_size = len(state)  # 8
-action_size = 2  # Example number of actions (weights)
-
-# Example: Generate state and pass it through the actor
-actor = Actor(state_size, action_size)
-state = torch.FloatTensor([[0.1, 0.2, 0.05, 0.1, 1.0, 1.5, 0.8, 0.05]])  # Example state
-action = actor(state).detach().numpy()  # Get action from the actor (as a NumPy array)
-
-noise = OUNoise(action_size)
-
-# Add OU noise to the action
-noisy_action = action + noise.sample()
-
-# Clip the action to the valid range (e.g., between -1 and 1 for many environments)
-clipped_action = np.clip(noisy_action, -1, 1)
-
-# Print the noisy, clipped action
-print("Noisy, clipped action:", clipped_action)
-
-'''

@@ -3,18 +3,17 @@ import time
 import threading
 from aggr_data import AggrData
 from ddpg import DDPG
-from ou_noise import OUNoise
 import numpy as np
 
-#################################
+#############################################
 ###  TODO
-###  1. stats are {} -> np
+###  1. stats are {} -> np          -> done
 ###  2. ric ctril handle stats
-###  3. reward function
-###  4. ddpg for states
-###  5. check actor and critic
+###  3. reward function             -> done
+###  4. ddpg for states             -> done
+###  5. check actor and critic      -> done
 ###  6. make sure drl can run
-################################
+#############################################
 
 #############################
 #### Global Variables
@@ -28,7 +27,7 @@ global_ue_aggr_data = AggrData(1000)
 global_lock = threading.Lock()
 
 # DDPG Parameters
-state_dim = 2  # BLER and energy
+state_dim = 8  # BLER and energy
 action_dim = 2  # Weight for BLER and energy
 actor_lr = 1e-4
 critic_lr = 1e-3
@@ -38,6 +37,53 @@ buffer_size = 100000
 batch_size = 64
 ddpg_agent = DDPG(state_size = state_dim, action_size = action_dim,actor_learning_rate=actor_lr, critic_learning_rate=critic_lr, 
     batch_size=batch_size, discount=gamma, memory_size=buffer_size, tau=tau)
+
+
+class StateNormalizer:
+    def __init__(self):
+        # Dynamic min/max for energy stats
+        self.energy_min = float('inf')
+        self.energy_max = float('-inf')
+
+    def update_energy(self, energy_mean, energy_max, energy_min):
+        # Update the min and max for energy values dynamically
+        self.energy_min = min(self.energy_min, energy_min)
+        self.energy_max = max(self.energy_max, energy_max)
+
+    def normalize_bler_skewness(self, bler_skewness):
+        # Tanh normalization to ensure skewness is between 0 and 1
+        return (np.tanh(bler_skewness) + 1) / 2
+
+    def normalize_energy_skewness(self, energy_skewness):
+        # Tanh normalization to ensure skewness is between 0 and 1
+        return (np.tanh(energy_skewness) + 1) / 2
+
+    def normalize_energy(self, value):
+        # Min-max normalization for energy stats
+        if self.energy_max == self.energy_min:
+            return 0  # Avoid division by zero
+        return (value - self.energy_min) / (self.energy_max - self.energy_min)
+
+    def normalize_state(self, bler_mean, bler_max, bler_min, bler_skewness,
+                        energy_mean, energy_max, energy_min, energy_skewness):
+        # Normalize the BLER stats (they are already between 0 and 1)
+        normalized_bler_mean = bler_mean
+        normalized_bler_max = bler_max
+        normalized_bler_min = bler_min
+        normalized_bler_skewness = self.normalize_bler_skewness(bler_skewness)
+
+        # Update energy min/max before normalization
+        self.update_energy(energy_mean, energy_max, energy_min)
+
+        # Normalize energy stats
+        normalized_energy_mean = self.normalize_energy(energy_mean)
+        normalized_energy_max = self.normalize_energy(energy_max)
+        normalized_energy_min = self.normalize_energy(energy_min)
+        normalized_energy_skewness = self.normalize_energy_skewness(energy_skewness)
+
+        # Return the normalized state
+        return np.array([normalized_bler_mean, normalized_bler_max, normalized_bler_min, normalized_bler_skewness,
+                         normalized_energy_mean, normalized_energy_max, normalized_energy_min, normalized_energy_skewness])
 
 
 ##################################################
@@ -83,7 +129,7 @@ def send_action(action):
     # Example of how action could map to the control message (modify as needed)
     for i in range(msg.num_ues):
         ues[i].rnti = i
-        ues[i].offload = action[i % 2]  # Assign actions to UEs based on the generated weights
+        ues[i].offload = 1  # Assign actions to UEs based on the generated weights
     msg.ues = ues
     
     # Send control message to RAN
@@ -112,6 +158,9 @@ for i in range(0, len(conn)):
 #################################
 
 def run_drl(stop_event):
+
+    state_normalizer = StateNormalizer()
+
     current_bler = 0
     current_energy = 0
     next_bler = 0
@@ -119,39 +168,52 @@ def run_drl(stop_event):
 
     with global_lock:
         # Retrieve the current aggregated state from the environment (RAN)
-        current_bler = global_ue_aggr_data.aggr_bler['mean']
-        current_energy = global_ue_aggr_data.aggr_enrg['mean']
+        current_bler = global_ue_aggr_data.get_bler_stats()
+        current_energy = global_ue_aggr_data.get_energy_stats()
         
     #while not stop_event.is_set():
     for step in range(200):
 
-        current_state = np.array([current_bler, current_energy])
+        #current_state = np.array([current_bler, current_energy])
+        current_state = state_normalizer.normalize_state(current_bler[0], current_bler[1], 
+                                                         current_bler[2], current_bler[3], 
+                                                         current_energy[0], current_energy[1], 
+                                                         current_energy[2], current_energy[3])
 
         # Generate action using DDPG agent
         action = ddpg_agent.get_action(current_state)
+        print("Actions:", action)
         
         # Send the action to the RAN via control message
         send_action(action)
-        next_state = None
-
         with global_lock:
             # Get the next state after applying the action
-            next_bler = global_ue_aggr_data.aggr_bler['mean']
-            next_energy = global_ue_aggr_data.aggr_enrg['mean']
-            next_state = np.array([next_bler, next_energy])
+            next_bler = global_ue_aggr_data.get_bler_stats()
+            next_energy = global_ue_aggr_data.get_energy_stats()
+            #next_state = np.array([next_bler, next_energy])
 
+        next_state = state_normalizer.normalize_state(next_bler[0], next_bler[1], 
+                                                         next_bler[2], next_bler[3], 
+                                                         next_energy[0], next_energy[1], 
+                                                         next_energy[2], next_energy[3])
+        
         # Calculate reward based on the transition (current_state -> next_state)
-        reward = calculate_reward(next_bler, next_energy, current_bler, current_energy)
+        reward = calculate_reward(next_bler[0], next_energy[0], current_bler[0], current_energy[0])
 
         # Remember the transition in the DDPG agent's memory
         ddpg_agent.remember(current_state, action, reward, False, next_state)
 
         # Train the DDPG agent with a batch of experiences
-        ddpg_agent.train(batch_size)
+        ddpg_agent.train()
 
         # Update the previous state for the next iteration
         current_bler = next_bler
         current_energy = next_energy
+
+        # Update the actor and critic loss monitoring
+        actor_loss = ddpg_agent.actor_loss
+        critic_loss = ddpg_agent.critic_loss
+        print(f"Step {step + 1} - Actor Loss: {actor_loss:.5f}, Critic Loss: {critic_loss:.5f}")
 
 
 ##############################

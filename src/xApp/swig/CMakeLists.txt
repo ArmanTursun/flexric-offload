@@ -8,12 +8,56 @@ CMAKE_POLICY(SET CMP0078 NEW)
 CMAKE_POLICY(SET CMP0086 NEW) 
 
 FIND_PACKAGE(SWIG 4.1 REQUIRED)
-FIND_PACKAGE(Python3 REQUIRED)
+#FIND_PACKAGE(Python3 REQUIRED)
 #find_package (Python3 COMPONENTS Interpreter Development)
+
+# Find Python3 executable from the pyenv virtual environment
+find_program(PYTHON_EXECUTABLE python3 HINTS "$ENV{PYENV_ROOT}/versions/my_project_env/bin")
+
+# Ensure Python executable is found
+if(NOT PYTHON_EXECUTABLE)
+  message(FATAL_ERROR "Python3 not found!")
+endif()
+
+# Use Python sysconfig to find include and library directories
+execute_process(
+    COMMAND "${PYTHON_EXECUTABLE}" -c "from sysconfig import get_paths as gp; print(gp()['include'])"
+    OUTPUT_VARIABLE PYTHON_INCLUDE_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+execute_process(
+    COMMAND "${PYTHON_EXECUTABLE}" -c "from sysconfig import get_paths as gp; print(gp()['platlib'])"
+    OUTPUT_VARIABLE PYTHON_LIBRARY_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Include Python, NumPy, and PyTorch directories
+include_directories(${PYTHON_INCLUDE_DIR})
+
+execute_process(
+    COMMAND "${PYTHON_EXECUTABLE}" -c "import numpy; print(numpy.get_include())"
+    OUTPUT_VARIABLE NUMPY_INCLUDE_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+include_directories(${NUMPY_INCLUDE_DIR})
+
+execute_process(
+    COMMAND "${PYTHON_EXECUTABLE}" -c "import torch; print(torch.utils.cpp_extension.include_paths()[0])"
+    OUTPUT_VARIABLE TORCH_INCLUDE_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+include_directories(${TORCH_INCLUDE_DIR})
+
+# Link necessary libraries
+#SWIG_LINK_LIBRARIES(xapp_sdk ${PYTHON_LIBRARY_DIR})
+
 
 INCLUDE(${SWIG_USE_FILE})
 
-FIND_PACKAGE(PythonLibs)
+#FIND_PACKAGE(PythonLibs)
 INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
@@ -78,7 +122,9 @@ set_property(TARGET xapp_sdk PROPERTY SWIG_COMPILE_DEFINITIONS ${E2AP_VERSION})
 #PYTHON compilation
 if(XAPP_TARGET_LANGUAGE STREQUAL "PYTHON_LANG")
   ADD_COMPILE_DEFINITIONS(XAPP_LANG_PYTHON)
-  SWIG_LINK_LIBRARIES(xapp_sdk ${PYTHON_LIBRARIES})
+  #SWIG_LINK_LIBRARIES(xapp_sdk ${PYTHON_LIBRARIES})
+  SWIG_LINK_LIBRARIES(xapp_sdk ${PYTHON_LIBRARY_DIR})
+
 
    add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_BINARY_DIR}/_xapp_sdk.so" "${CMAKE_BINARY_DIR}/examples/xApp/python3/_xapp_sdk.so" )
 

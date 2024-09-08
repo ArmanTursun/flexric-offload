@@ -1,88 +1,103 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
 import numpy as np
-import tensorflow as tf
-from keras.initializers import RandomNormal, Identity
-from keras.models import Model
-from keras.layers import Dense, Input
-from keras.optimizers import Adam
 
-class Actor(object):
-    def __init__(self, state_size, action_size,
-                 hidden_units=(300, 600), learning_rate=0.0001, batch_size=64,
-                 tau=0.001):
+class Actor(nn.Module):
+    def __init__(self, state_size, action_size, hidden_units=(300, 600), learning_rate=0.0001, tau=0.001):
         """
-        Constructor for the Actor network
+        Constructor for the Actor network in PyTorch.
 
-        :param state_size: An integer denoting the dimensionality of the states
-            in the current problem
-        :param action_size: An integer denoting the dimensionality of the
-            actions in the current problem
-        :param hidden_units: An iterable defining the number of hidden units in
-            each layer. default: (300, 600)
-        :param learning_rate: A float denoting the speed at which the network
-            will learn. default: 0.0001
-        :param batch_size: An integer denoting the batch size. default: 64
-        :param tau: A float denoting the rate at which the target model will
-            track the main model. default: 0.001
+        Args:
+        - state_size (int): Dimension of the input state.
+        - action_size (int): Dimension of the output action space (number of weights).
+        - hidden_units (tuple): Number of hidden units in each layer. Default: (300, 600).
+        - learning_rate (float): Learning rate for training the model. Default: 0.0001.
+        - tau (float): Soft update rate for the target network. Default: 0.001.
         """
-        # Store parameters
-        self._batch_size = batch_size
-        self._tau = tau
-        self._learning_rate = learning_rate
-        self._hidden = hidden_units
-        self._state_size = state_size
-        self._action_size = action_size
+        super(Actor, self).__init__()
 
-        # Generate the main model
-        self._model, self._model_weights, self._model_input = self._generate_model()
-        # Generate carbon copy of the model so that we avoid divergence
-        self._target_model, self._target_weights, self._target_state = self._generate_model()
+        self.state_size = state_size
+        self.action_size = action_size
+        self.hidden_units = hidden_units
+        self.tau = tau
+        
+        # Define the fully connected layers
+        self.fc1 = nn.Linear(state_size, hidden_units[0])  # First hidden layer
+        self.fc2 = nn.Linear(hidden_units[0], hidden_units[1])  # Second hidden layer
+        self.fc3 = nn.Linear(hidden_units[1], action_size)  # Output layer
+        
+        # Initialize the optimizer
+        self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
+        
+    def forward(self, state):
+        """
+        Forward pass for the Actor network.
 
-        # Gradient calculation
-        self._action_gradients = tf.keras.backend.function(
-            inputs=[self._model.input],
-            outputs=[self._model.output]
-        )
+        Args:
+        - state (torch.Tensor): Input state tensor of shape (batch_size, state_size).
 
-        # Define the optimization function
-        self._optimize = tf.keras.optimizers.Adam(learning_rate)
+        Returns:
+        - action (torch.Tensor): Output tensor representing weights of shape (batch_size, action_size),
+                                 where the values sum to 1.
+        """
+        x = torch.relu(self.fc1(state))  # Pass through the first hidden layer
+        x = torch.relu(self.fc2(x))  # Pass through the second hidden layer
+        action_weights = torch.softmax(self.fc3(x), dim=-1)  # Softmax to ensure the sum of weights is 1
+        return action_weights
 
     def train(self, states, action_gradients):
         """
-        Updates the weights of the main network
-        :param states: The states of the input to the network
-        :param action_gradients: The gradients of the actions to update the
-            network
-        :return: None
-        """
-        with tf.GradientTape() as tape:
-            actions = self._model(states)
-            loss = -tf.reduce_mean(actions * action_gradients)
-        gradients = tape.gradient(loss, self._model.trainable_variables)
-        self._optimize.apply_gradients(zip(gradients, self._model.trainable_variables))
+        Updates the weights of the main network based on the provided gradients.
 
-    def train_target_model(self):
+        Args:
+        - states (torch.Tensor): Input states of shape (batch_size, state_size).
+        - action_gradients (torch.Tensor): Action gradients for updating the network, shape (batch_size, action_size).
         """
-        Updates the weights of the target network to slowly track the main
-        network.
-        :return: None
-        """
-        main_weights = self._model.get_weights()
-        target_weights = self._target_model.get_weights()
-        target_weights = [self._tau * main_weight + (1 - self._tau) * target_weight 
-                          for main_weight, target_weight in zip(main_weights, target_weights)]
-        self._target_model.set_weights(target_weights)
-        #print("Target model weights updated.")
+        self.optimizer.zero_grad()
+        actions = self.forward(states)
+        loss = -torch.mean(actions * action_gradients)  # The negative sign is for gradient ascent
+        loss.backward()
+        self.optimizer.step()
 
-    def _generate_model(self):
+    def _soft_update(self, target_model, tau=None):
         """
-        Generates the model based on the hyperparameters defined in the
-        constructor.
-        :return: A tuple containing references to the model, weights,
-            and input layer
+        Soft update of the target model parameters using the main model's parameters.
+        
+        Args:
+        - target_model (Actor): The target actor model to be updated.
+        - tau (float): Soft update parameter. If None, the class's tau value is used.
         """
-        input_layer = Input(shape=[self._state_size])
-        layer = Dense(self._hidden[0], activation='relu')(input_layer)
-        layer = Dense(self._hidden[1], activation='relu')(layer)
-        output_layer = Dense(self._action_size, activation='sigmoid')(layer)
-        model = Model(inputs=input_layer, outputs=output_layer)
-        return model, model.trainable_weights, input_layer
+        if tau is None:
+            tau = self.tau
+        for target_param, param in zip(target_model.parameters(), self.parameters()):
+            target_param.data.copy_(tau * param.data + (1.0 - tau) * target_param.data)
+
+    def update_target_model(self, target_model):
+        """
+        Update the target network using the soft update method.
+        """
+        self._soft_update(target_model)
+'''
+# Example usage with BLER and Energy states (mean, max, min, skewness)
+bler_state = [0.1, 0.2, 0.05, 0.1]  # Example BLER state (mean, max, min, skewness)
+energy_state = [1.0, 1.5, 0.8, 0.05]  # Example Energy state (mean, max, min, skewness)
+
+# Concatenate BLER and energy states
+#state = bler_state + energy_state  # Total state size = 8
+state = np.array(bler_state + energy_state)  # Shape: (6,)
+state_size = len(state)  # 8
+action_size = 2  # Example number of actions (weights)
+
+# Create the actor network
+actor = Actor(state_size, action_size)
+
+# Example: Convert state to a PyTorch tensor and perform a forward pass
+#state_tensor = torch.FloatTensor([state])  # Shape (1, 8)
+state_tensor = torch.FloatTensor(state).unsqueeze(0).to("cpu")  # Add batch dimension if needed
+actions = actor(state_tensor)  # Forward pass to get actions (weights)
+print(actions)  # The actions (weights) will sum to 1
+
+# Soft update target actor network from actor network
+actor.update_target_model(actor)
+'''
