@@ -38,10 +38,11 @@ class DDPG:
         self.critic.update_target_model(self.target_critic)  # Initialize target critic
 
         # Memory buffer for experience replay
-        self.memory = deque(maxlen=memory_size)
+        self._memory = deque(maxlen=memory_size)
 
         # Batch size
-        self.batch_size = batch_size
+        self._batch_size = batch_size
+        self._discount = discount
 
         # Initialize OU noise for exploration with decay
         self.noise = OUNoise(action_size)
@@ -63,14 +64,19 @@ class DDPG:
             state = np.array(state)  # Convert to NumPy array if needed
 
         # Convert NumPy array to PyTorch tensor and move it to the correct device
-        state_tensor = torch.FloatTensor(state).unsqueeze(0).to('cpu')
+        state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
         
         # Get the action from the actor network
         action = self.actor(state_tensor).cpu().detach().numpy()[0]
         
         # Add exploration noise and clip the action
-        noise = self.noise.sample()
+        noise = self.noise.sample()        
         action_with_noise = np.clip(action + noise, 0, 1)
+
+        # Re-normalize the actions to ensure their sum equals 1
+        action_sum = np.sum(action_with_noise)
+        if action_sum > 0:
+            action_with_noise = action_with_noise / action_sum  # Normalize to sum to 1
         
         # Decay the noise after each action
         self.noise.decay_noise()
@@ -82,27 +88,39 @@ class DDPG:
         self.noise.reset()
 
     def remember(self, state, action, reward, done, next_state):
+        # Perform validity checks on the state, action, reward, and next_state
+        if not self._is_valid_sample(state, action, reward, done, next_state):
+            print("Invalid sample detected, skipping...")
+            return  # Skip storing this invalid sample
         """Store experience in memory."""
-        self.memory.append((state, action, reward, done, next_state))
+        self._memory.append((state, action, reward, done, next_state))
 
     def train(self):
         """Train the agent if memory contains enough samples."""
-        if len(self.memory) > self.batch_size:
+        if len(self._memory) > self._batch_size:
             self._train()
 
     def _train(self):
         """Perform a training step: update critic and actor networks, then update target networks."""
         states, actions, rewards, done, next_states = self._get_sample()
+        # Check for NaN values in the inputs
+        if self._check_for_nan([states, actions, rewards, done, next_states]):
+            print("NaN detected in inputs! Skipping training step.")
+            return  # Skip training if NaNs are found
         self.critic_loss = self._train_critic(states, actions, next_states, done, rewards)
-        #self.critic_loss_history.append(critic_loss)  # Track critic loss
         self.actor_loss = self._train_actor(states)
-        #self.actor_loss_history.append(actor_loss)  # Track critic loss
         self._update_target_models()
 
     def _get_sample(self):
         """Sample a batch of experiences from memory for training."""
-        sample = random.sample(self.memory, self.batch_size)
+        sample = random.sample(self._memory, self._batch_size)
         states, actions, rewards, done, next_states = zip(*sample)
+
+        states = np.array(states)  # Convert list of NumPy arrays to a single NumPy array
+        actions = np.array(actions)
+        rewards = np.array(rewards)
+        done = np.array(done)
+        next_states = np.array(next_states)
 
         states = torch.FloatTensor(states).to(self.device)
         actions = torch.FloatTensor(actions).to(self.device)
@@ -116,6 +134,8 @@ class DDPG:
         """Train the critic network using sampled states, actions, and calculated Q-targets."""
         q_targets = self._get_q_targets(next_states, done, rewards)
         critic_loss = self.critic.train(states, actions, q_targets)  # Train critic and return loss
+        # Clip gradients for critic
+        torch.nn.utils.clip_grad_norm_(self.critic.parameters(), self.gradient_clip_value)
         return critic_loss
 
     def _get_q_targets(self, next_states, done, rewards):
@@ -149,6 +169,40 @@ class DDPG:
         """Soft update target networks for actor and critic."""
         self.critic.update_target_model(self.target_critic)  # Update target critic model
         self.actor.update_target_model(self.target_actor)  # Update target actor model
+
+    def _check_for_nan(self, tensors):
+        """Check for NaN values in the list of tensors."""
+        for tensor in tensors:
+            if torch.isnan(tensor).any().item():
+                return True
+        return False
+    
+    def _is_valid_sample(self, state, action, reward, done, next_state):
+        """
+        Check if the sample (state, action, reward, done, next_state) is valid.
+        This includes checking for NaN, Inf, and valid dimensions/ranges.
+        """
+        # Check for NaN or Inf in the state, action, next_state, reward, and done flag
+        if (np.isnan(state).any() or np.isinf(state).any() or
+            np.isnan(action).any() or np.isinf(action).any() or
+            np.isnan(next_state).any() or np.isinf(next_state).any() or
+            np.isnan(reward) or np.isinf(reward) or
+            np.isnan(done) or np.isinf(done)):
+            return False  # Invalid sample due to NaN or Inf values
+    
+        # Check if the state and next_state have the expected dimensions
+        if len(state) != self.actor.state_size or len(next_state) != self.actor.state_size:
+            return False  # Invalid sample due to incorrect state dimensions
+    
+        # Check if action is in the valid range [0, 1] (or other ranges if needed)
+        if np.any(action < 0) or np.any(action > 1):
+            return False  # Invalid action due to out-of-bounds values
+
+        # Optionally, check if the reward is within a reasonable range (e.g., avoid extreme values)
+        #if reward < -1000 or reward > 1000:  # Modify range based on your problem
+            #return False  # Invalid sample due to extreme reward values
+    
+        return True  # Sample is valid
 
 """
 # Test DDPG with random BLER and energy data

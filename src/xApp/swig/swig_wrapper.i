@@ -59,6 +59,14 @@
     $1 = (int64_t) PyInt_AsLong($input);
 }
 
+/* float mapping: Python -> C */
+%typemap(in) float {
+    $1 = (float) PyFloat_AsDouble($input);
+}
+%typemap(in) double {
+    $1 = PyFloat_AsDouble($input);  // Convert Python float to C++ double
+}
+
 /* uintXX_t mapping: C -> Python */
 %typemap(out) uint8_t {
     $result = PyInt_FromLong((long) $1);
@@ -87,7 +95,31 @@
     $result = PyInt_FromLong((long) $1);
 }
 
+/* float mapping: C -> Python */
+%typemap(out) float {
+    $result = PyFloat_FromDouble((double) $1);
+}
+%typemap(out) double {
+    $result = PyFloat_FromDouble($1);  // Convert C++ double to Python float
+}
+
+
+
 #endif
+
+%typemap(in) float {
+    $1 = (float)PyFloat_AsDouble($input);
+}
+
+%typemap(out) float {
+    $result = PyFloat_FromDouble((double)$1);
+}
+
+%typemap(in) mac_ue_ctrl_array {
+    $1 = ($1_ltype *) PyArray_DATA($input);
+}
+
+
 
 %feature("director") mac_cb;
 %feature("director") rlc_cb;

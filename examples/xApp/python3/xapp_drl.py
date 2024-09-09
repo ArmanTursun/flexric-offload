@@ -8,11 +8,12 @@ import numpy as np
 #############################################
 ###  TODO
 ###  1. stats are {} -> np          -> done
-###  2. ric ctril handle stats
+###  2. ric ctril handle stats      -> done
 ###  3. reward function             -> done
 ###  4. ddpg for states             -> done
 ###  5. check actor and critic      -> done
-###  6. make sure drl can run
+###  6. make sure drl can run       -> done
+###  7. run with real ran
 #############################################
 
 #############################
@@ -114,6 +115,18 @@ class MACCallback(ric.mac_cb):
                     global_ue_aggr_data.add_energy(avg_energy, ind.tstamp)
 
 
+####################
+####  init RIC
+####################
+
+ric.init()
+conn_id = 0
+conn = ric.conn_e2_nodes()
+assert(len(conn) > 0)
+for conn_id in range(0, len(conn)):
+    print("Global E2 Node [" + str(conn_id) + "]: PLMN MCC = " + str(conn[conn_id].id.plmn.mcc))
+    print("Global E2 Node [" + str(conn_id) + "]: PLMN MNC = " + str(conn[conn_id].id.plmn.mnc))
+
 ##################################################
 #### DRL functions
 ##################################################
@@ -123,17 +136,31 @@ def send_action(action):
     msg = ric.mac_ctrl_msg_t()
     msg.action = 42
     msg.tms = time.time_ns() / 1000.0
-    msg.num_ues = 3
-    ues = ric.mac_ue_ctrl_array(msg.num_ues)
+    msg.num_ues = 1
+    #ues = ric.mac_ue_ctrl_array(msg.num_ues)
+
+    # Assign values to each element of the array
+    #for i in range(msg.num_ues):
+        #ues[i] = ric.mac_ue_ctrl_t()
+        #ues[i].rnti = i
+        #ues[i].offload = float(action[1])  # Convert action[i] to float explicitly
+        #print(f"Assigned offload for UE {i}: {ues[i].offload}")  # Debugging info
+
+    # Explicitly assign the array back to msg.ues
+    #msg.ues = ues
+
+    #if np.isnan(action).any() or np.isinf(action).any():
+        #action[1] = 0.0
+
+    ues = ric.mac_ue_ctrl_t()  # Create a single UE
+    ues.rnti = 1
+    ues.offload = float(action[1])  # Assign fixed value
+    msg.ues = ues  # Pass the single UE to the control message
+    #print(f"Assigned offload: {ues.offload}")
+
     
-    # Example of how action could map to the control message (modify as needed)
-    for i in range(msg.num_ues):
-        ues[i].rnti = i
-        ues[i].offload = 1  # Assign actions to UEs based on the generated weights
-    msg.ues = ues
-    
-    # Send control message to RAN
-    ric.control_mac_sm(conn[0].id, msg)
+    # Call the C++ function, which should now receive the correctly populated array
+    ric.control_mac_sm(conn[conn_id].id, msg)
 
 # Reward function calculation (this is an example, modify as per your needs)
 def calculate_reward(current_bler, current_energy, previous_bler, previous_energy):
@@ -141,22 +168,10 @@ def calculate_reward(current_bler, current_energy, previous_bler, previous_energ
                 np.log(1 + current_energy / (previous_energy + 1e-6)))
     return reward
 
-####################
-####  init RIC
-####################
-
-ric.init()
-
-conn = ric.conn_e2_nodes()
-assert(len(conn) > 0)
-for i in range(0, len(conn)):
-    print("Global E2 Node [" + str(i) + "]: PLMN MCC = " + str(conn[i].id.plmn.mcc))
-    print("Global E2 Node [" + str(i) + "]: PLMN MNC = " + str(conn[i].id.plmn.mnc))
-
 #################################
 #### DRL main method
 #################################
-
+'''
 def run_drl(stop_event):
 
     state_normalizer = StateNormalizer()
@@ -214,6 +229,105 @@ def run_drl(stop_event):
         actor_loss = ddpg_agent.actor_loss
         critic_loss = ddpg_agent.critic_loss
         print(f"Step {step + 1} - Actor Loss: {actor_loss:.5f}, Critic Loss: {critic_loss:.5f}")
+'''
+
+def run_drl(stop_event, num_epochs=2, max_steps_per_epoch=200, warmup_steps=0):
+    """
+    Run the DDPG training for a specified number of epochs.
+    
+    :param stop_event: threading event to stop the training
+    :param num_epochs: number of training epochs
+    :param max_steps_per_epoch: max steps per epoch
+    """
+    state_normalizer = StateNormalizer()
+    current_bler = None
+    current_energy = None
+    current_state = None
+
+    for epoch in range(num_epochs):
+        print(f"Epoch {epoch + 1}/{num_epochs}")
+
+        while True:
+            with global_lock:
+                # Retrieve the current aggregated state from the environment (RAN)
+                current_bler = global_ue_aggr_data.get_bler_stats()
+                current_energy = global_ue_aggr_data.get_energy_stats()
+
+            # Normalize the initial state
+            current_state = state_normalizer.normalize_state(current_bler[0], current_bler[1],
+                                        current_bler[2], current_bler[3],
+                                        current_energy[0], current_energy[1],
+                                        current_energy[2], current_energy[3])
+            if np.isnan(current_bler).any() or np.isinf(current_bler).any() or np.isnan(current_energy).any() or np.isinf(current_energy).any():
+                continue
+            else:
+                break
+            
+        # Reset noise and initial states at the beginning of each epoch
+        ddpg_agent.reset_noise()
+        total_reward = 0
+
+        # Run the steps for each epoch
+        for step in range(max_steps_per_epoch):
+            #if step < warmup_steps:
+                #print(f"Warm-up step {step + 1}/{warmup_steps}, skipping training...")
+                
+                #continue  # Skip training until valid states are generated
+
+            # Generate action using DDPG agent
+            action = ddpg_agent.get_action(current_state)
+            #print("Actions:", action)
+
+            # Send the action to the RAN via control message
+            send_action(action)
+
+            with global_lock:
+                # Get the next state after applying the action
+                next_bler = global_ue_aggr_data.get_bler_stats()
+                next_energy = global_ue_aggr_data.get_energy_stats()
+
+            # Normalize the next state
+            next_state = state_normalizer.normalize_state(next_bler[0], next_bler[1],
+                                                          next_bler[2], next_bler[3],
+                                                          next_energy[0], next_energy[1],
+                                                          next_energy[2], next_energy[3])
+
+            # Calculate reward based on the transition (current_state -> next_state)
+            reward = calculate_reward(next_bler[0], next_energy[0], current_bler[0], current_energy[0])
+
+            # Check if episode is done (you can define your own condition here)
+            # E.g., if BLER or energy hits some threshold, we can terminate the episode.
+            done = (step == max_steps_per_epoch - 1)# or (reward > some_reward_threshold)
+
+            # Remember the transition in the DDPG agent's memory
+            print(current_state, action, reward, done, next_state)
+            ddpg_agent.remember(current_state, action, reward, done, next_state)
+
+            # Train the DDPG agent with a batch of experiences
+            ddpg_agent.train()
+
+            # Update the previous state for the next iteration
+            current_state = next_state
+            current_bler = next_bler
+            current_energy = next_energy
+
+            # Update the total reward
+            total_reward += reward
+
+            # If the episode is done, break the step loop and start a new epoch
+            if done:
+                print(f"Episode done at step {step + 1} with total reward: {total_reward:.5f}")
+                break
+
+            # Update the actor and critic loss monitoring
+            actor_loss = ddpg_agent.actor_loss
+            critic_loss = ddpg_agent.critic_loss
+            print(f"Step {step + 1} - Actor Loss: {actor_loss:.5f}, Critic Loss: {critic_loss:.5f}")
+
+        print(f"Epoch {epoch + 1} finished with total reward: {total_reward:.5f}\n")
+        if stop_event.is_set():
+            break
+
 
 
 ##############################

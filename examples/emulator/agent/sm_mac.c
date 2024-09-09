@@ -45,7 +45,7 @@ sm_ag_if_ans_t write_ctrl_mac_sm(void const* data)
   if (msg->num_ues > 0){
     printf("Ctrl ues: %u \n", msg->num_ues);
     for (uint32_t i = 0; i < msg->num_ues; i++){
-      printf("UE = %u, offload = %u \n", msg->ues[i].rnti, msg->ues[i].offload);
+      printf("UE = %u, offload = %f \n", msg->ues[i].rnti, msg->ues[i].offload);
     }
   } else {
     printf("No Ctrl UEs \n");

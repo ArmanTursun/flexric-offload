@@ -177,7 +177,7 @@ bool eq_mac_ctrl_hdr(mac_ctrl_hdr_t* m0, mac_ctrl_hdr_t* m1);
 
 typedef struct {
   uint32_t rnti;
-  uint32_t offload;
+  float offload;
 } mac_ue_ctrl_t;
 
 typedef struct {
