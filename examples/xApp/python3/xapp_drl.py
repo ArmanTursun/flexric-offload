@@ -106,7 +106,7 @@ class MACCallback(ric.mac_cb):
                 # Calculate average energy from the TBS data
                 total_energy = 0
                 for tbs_stat in ue_stats.tbs[:ue_stats.num_tbs]:
-                    total_energy += tbs_stat.tbs
+                    total_energy += tbs_stat.latency
                 avg_energy = total_energy / ue_stats.num_tbs if ue_stats.num_tbs > 0 else 0
 
                 # Add the new BLER and energy data to the AggrData object
@@ -231,7 +231,7 @@ def run_drl(stop_event):
         print(f"Step {step + 1} - Actor Loss: {actor_loss:.5f}, Critic Loss: {critic_loss:.5f}")
 '''
 
-def run_drl(stop_event, num_epochs=2, max_steps_per_epoch=200, warmup_steps=0):
+def run_drl(stop_event, num_epochs=10, max_steps_per_epoch=200, warmup_steps=0):
     """
     Run the DDPG training for a specified number of epochs.
     
@@ -300,7 +300,7 @@ def run_drl(stop_event, num_epochs=2, max_steps_per_epoch=200, warmup_steps=0):
             done = (step == max_steps_per_epoch - 1)# or (reward > some_reward_threshold)
 
             # Remember the transition in the DDPG agent's memory
-            print(current_state, action, reward, done, next_state)
+            # print(current_state, action, reward, done, next_state)
             ddpg_agent.remember(current_state, action, reward, done, next_state)
 
             # Train the DDPG agent with a batch of experiences
@@ -316,13 +316,13 @@ def run_drl(stop_event, num_epochs=2, max_steps_per_epoch=200, warmup_steps=0):
 
             # If the episode is done, break the step loop and start a new epoch
             if done:
-                print(f"Episode done at step {step + 1} with total reward: {total_reward:.5f}")
+                #print(f"Episode done at step {step + 1} with total reward: {total_reward:.5f}")
                 break
 
             # Update the actor and critic loss monitoring
             actor_loss = ddpg_agent.actor_loss
             critic_loss = ddpg_agent.critic_loss
-            print(f"Step {step + 1} - Actor Loss: {actor_loss:.5f}, Critic Loss: {critic_loss:.5f}")
+            # print(f"Step {step + 1} - Actor Loss: {actor_loss:.5f}, Critic Loss: {critic_loss:.5f}")
 
         print(f"Epoch {epoch + 1} finished with total reward: {total_reward:.5f}\n")
         if stop_event.is_set():

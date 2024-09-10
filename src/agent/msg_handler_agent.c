@@ -301,7 +301,7 @@ e2ap_msg_t e2ap_handle_control_request_agent(e2_agent_t* ag, const e2ap_msg_t* m
 #endif                                            
                                             .control_outcome = ba_ctrl_ans } ;
 
-  printf("[E2-AGENT]: CONTROL ACKNOWLEDGE tx\n");
+  //printf("[E2-AGENT]: CONTROL ACKNOWLEDGE tx\n");
   e2ap_msg_t ans = {.type = RIC_CONTROL_ACKNOWLEDGE};
   ans.u_msgs.ric_ctrl_ack = ric_ctrl_ack;
   ans.tstamp = time_now_us();
