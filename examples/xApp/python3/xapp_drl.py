@@ -104,28 +104,17 @@ class MACCallback(ric.mac_cb):
                 ue_stats = ind.ue_stats[i]
 
                 # Calculate average energy from the TBS data
-                total_energy = 0
-                for tbs_stat in ue_stats.tbs[:ue_stats.num_tbs]:
-                    total_energy += tbs_stat.latency
-                avg_energy = total_energy / ue_stats.num_tbs if ue_stats.num_tbs > 0 else 0
+                #total_energy = 0
+                #for tbs_stat in ue_stats.tbs[:ue_stats.num_tbs]:
+                    #total_energy += tbs_stat.latency
+                #avg_energy = total_energy / ue_stats.num_tbs if ue_stats.num_tbs > 0 else 0
 
                 # Add the new BLER and energy data to the AggrData object
                 with global_lock:
                     global_ue_aggr_data.add_bler(ue_stats.context.ul_bler, ind.tstamp)
-                    global_ue_aggr_data.add_energy(avg_energy, ind.tstamp)
+                    global_ue_aggr_data.add_energy(ue_stats.context.dl_bler, ind.tstamp)
+                    print(ue_stats.context.ul_bler, ue_stats.context.dl_bler)
 
-
-####################
-####  init RIC
-####################
-
-ric.init()
-conn_id = 0
-conn = ric.conn_e2_nodes()
-assert(len(conn) > 0)
-for conn_id in range(0, len(conn)):
-    print("Global E2 Node [" + str(conn_id) + "]: PLMN MCC = " + str(conn[conn_id].id.plmn.mcc))
-    print("Global E2 Node [" + str(conn_id) + "]: PLMN MNC = " + str(conn[conn_id].id.plmn.mnc))
 
 ##################################################
 #### DRL functions
@@ -135,8 +124,8 @@ for conn_id in range(0, len(conn)):
 def send_action(action):
     msg = ric.mac_ctrl_msg_t()
     msg.action = 42
-    msg.tms = time.time_ns() / 1000.0
-    msg.num_ues = 1
+    #msg.tms = int(time.time_ns() / 1000)
+    #msg.num_ues = 0
     #ues = ric.mac_ue_ctrl_array(msg.num_ues)
 
     # Assign values to each element of the array
@@ -152,10 +141,10 @@ def send_action(action):
     #if np.isnan(action).any() or np.isinf(action).any():
         #action[1] = 0.0
 
-    ues = ric.mac_ue_ctrl_t()  # Create a single UE
-    ues.rnti = 1
-    ues.offload = float(action[1])  # Assign fixed value
-    msg.ues = ues  # Pass the single UE to the control message
+    #ues = ric.mac_ue_ctrl_t()  # Create a single UE
+    #ues.rnti = 1
+    #ues.offload = float(action[1])  # Assign fixed value
+    #msg.ues = ues  # Pass the single UE to the control message
     #print(f"Assigned offload: {ues.offload}")
 
     
@@ -231,7 +220,7 @@ def run_drl(stop_event):
         print(f"Step {step + 1} - Actor Loss: {actor_loss:.5f}, Critic Loss: {critic_loss:.5f}")
 '''
 
-def run_drl(stop_event, num_epochs=10, max_steps_per_epoch=200, warmup_steps=0):
+def run_drl(stop_event, num_epochs=50, max_steps_per_epoch=200, warmup_steps=0):
     """
     Run the DDPG training for a specified number of epochs.
     
@@ -334,11 +323,24 @@ def run_drl(stop_event, num_epochs=10, max_steps_per_epoch=200, warmup_steps=0):
 #### MAC IND&CTRL with DRL
 ##############################
 
+####################
+####  init RIC
+####################
+
+ric.init()
+conn_id = 0
+conn = ric.conn_e2_nodes()
+assert(len(conn) > 0)
+#for conn_id in range(0, len(conn)):
+    #print("Global E2 Node [" + str(conn_id) + "]: PLMN MCC = " + str(conn[conn_id].id.plmn.mcc))
+    #print("Global E2 Node [" + str(conn_id) + "]: PLMN MNC = " + str(conn[conn_id].id.plmn.mnc))
+
 mac_hndlr = []
 for i in range(0, len(conn)):
     mac_cb = MACCallback()
-    hndlr = ric.report_mac_sm(conn[i].id, ric.Interval_ms_1, mac_cb)
+    hndlr = ric.report_mac_sm(conn[i].id, ric.Interval_ms_5, mac_cb)
     mac_hndlr.append(hndlr)
+    #time.sleep(1)
 
 try:
     # Create a stop event for the drl thread

@@ -240,15 +240,15 @@ mac_ctrl_msg_t mac_dec_ctrl_msg_plain(size_t len, uint8_t const ctrl_msg[len])
   it += sizeof(ctrl.num_ues);
   sz += sizeof(ctrl.num_ues);
 
-  if(ctrl.num_ues > 0){
-    ctrl.ues = calloc(ctrl.num_ues, sizeof(mac_ue_ctrl_t));
-    assert(ctrl.ues != NULL && "memory exhausted");
-  }
+  //if(ctrl.num_ues > 0){
+    //ctrl.ues = calloc(ctrl.num_ues, sizeof(mac_ue_ctrl_t));
+    //assert(ctrl.ues != NULL && "memory exhausted");
+  //}
   
-  for(uint32_t i = 0; i < ctrl.num_ues; ++i){
-    sz = fill_ue(&ctrl.ues[i], it);
-    it += sz;
-  }
+  //for(uint32_t i = 0; i < ctrl.num_ues; ++i){
+    //sz = fill_ue(&ctrl.ues[i], it);
+    //it += sz;
+  //}
   
   memcpy(&ctrl.tms, it, sizeof(ctrl.tms));
   it += sizeof(ctrl.tms);

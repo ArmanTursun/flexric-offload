@@ -126,16 +126,16 @@ int main(int argc, char *argv[])
       // mac control
       mac_ctrl_req_data_t wr = {.hdr.dummy = 1, .msg.action = 42 };
       mac_ctrl_msg_t *msg = &wr.msg;
-      msg->num_ues = 3;
-      if (msg->num_ues > 0){
-        msg->ues = calloc(msg->num_ues, sizeof( mac_ue_ctrl_t) );
-        assert(msg->ues != NULL && "Memory exhausted");
-      }
-      for (uint32_t i = 0; i < msg->num_ues; i++){
-        mac_ue_ctrl_t* ue_ctrl = &msg->ues[i];
-        ue_ctrl->rnti = i;
-        ue_ctrl->offload = i;
-      }
+      //msg->num_ues = 3;
+      //if (msg->num_ues > 0){
+        //msg->ues = calloc(msg->num_ues, sizeof( mac_ue_ctrl_t) );
+        //assert(msg->ues != NULL && "Memory exhausted");
+      //}
+      //for (uint32_t i = 0; i < msg->num_ues; i++){
+        //mac_ue_ctrl_t* ue_ctrl = &msg->ues[i];
+        //ue_ctrl->rnti = i;
+        //ue_ctrl->offload = i;
+      //}
       sm_ans_xapp_t const a = control_sm_xapp_api(&nodes.n[i].id, 142, &wr);
       assert(a.success == true);
 

@@ -328,9 +328,9 @@ byte_array_t mac_enc_ctrl_msg_plain(mac_ctrl_msg_t const* ctrl_msg)
 
   size_t sz = sizeof(ctrl_msg->action);
   sz += sizeof(ctrl_msg->num_ues);
-  for (uint32_t i = 0; i < ctrl_msg->num_ues; i++){
-    sz += cal_ctrl_ue_msg(&ctrl_msg->ues[i]);
-  }
+  //for (uint32_t i = 0; i < ctrl_msg->num_ues; i++){
+    //sz += cal_ctrl_ue_msg(&ctrl_msg->ues[i]);
+  //}
   sz += sizeof(ctrl_msg->tms);
   
   ba.buf = malloc(sz);
@@ -344,10 +344,10 @@ byte_array_t mac_enc_ctrl_msg_plain(mac_ctrl_msg_t const* ctrl_msg)
   memcpy(it, &ctrl_msg->num_ues, sizeof(ctrl_msg->num_ues));
   it += sizeof(ctrl_msg->num_ues);
 
-  for(uint32_t i = 0; i < ctrl_msg->num_ues; ++i){
-    size_t pos1 = fill_ue(it, &ctrl_msg->ues[i]);
-    it += pos1;
-  }
+  //for(uint32_t i = 0; i < ctrl_msg->num_ues; ++i){
+    //size_t pos1 = fill_ue(it, &ctrl_msg->ues[i]);
+    //it += pos1;
+  //}
 
   memcpy(it, &ctrl_msg->tms, sizeof(ctrl_msg->tms));
   it += sizeof(ctrl_msg->tms);
