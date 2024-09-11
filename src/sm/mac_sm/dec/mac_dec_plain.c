@@ -103,8 +103,11 @@ mac_ctrl_msg_t mac_dec_ctrl_msg_plain(size_t len, uint8_t const ctrl_msg[len])
 
 mac_ctrl_out_t mac_dec_ctrl_out_plain(size_t len, uint8_t const ctrl_out[len]) 
 {
-  assert(0!=0 && "Not implemented");
+  //assert(0!=0 && "Not implemented");
   assert(ctrl_out != NULL);
+  mac_ctrl_out_t ret = {0};
+
+  return ret;
 }
 
 mac_func_def_t mac_dec_func_def_plain(size_t len, uint8_t const func_def[len])

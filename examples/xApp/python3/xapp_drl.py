@@ -100,8 +100,7 @@ class MACCallback(ric.mac_cb):
     def handle(self, ind):
         # save bler and energy values of each tbs of each ue into aggr_data
         if len(ind.ue_stats) > 0:
-            for i in range(ind.len_ue_stats):
-                ue_stats = ind.ue_stats[i]
+                ue_stats = ind.ue_stats[0]
 
                 # Calculate average energy from the TBS data
                 #total_energy = 0
@@ -113,8 +112,9 @@ class MACCallback(ric.mac_cb):
                 with global_lock:
                     global_ue_aggr_data.add_bler(ue_stats.ul_bler, ind.tstamp)
                     global_ue_aggr_data.add_energy(ue_stats.dl_bler, ind.tstamp)
+                print(ue_stats.ul_bler, ue_stats.dl_bler)
 
-
+            
 ####################
 ####  init RIC
 ####################
@@ -160,7 +160,7 @@ def send_action(action):
 
     
     # Call the C++ function, which should now receive the correctly populated array
-    ric.control_mac_sm(conn[conn_id].id, msg)
+    ric.control_mac_sm(conn[i].id, msg)
 
 # Reward function calculation (this is an example, modify as per your needs)
 def calculate_reward(current_bler, current_energy, previous_bler, previous_energy):

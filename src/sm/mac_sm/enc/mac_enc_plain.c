@@ -131,7 +131,7 @@ byte_array_t mac_enc_ctrl_msg_plain(mac_ctrl_msg_t const* ctrl_msg)
 
 byte_array_t mac_enc_ctrl_out_plain(mac_ctrl_out_t const* ctrl) 
 {
-  assert(0!=0 && "Not implemented");
+  //assert(0!=0 && "Not implemented");
 
   assert(ctrl != NULL );
   byte_array_t  ba = {0};
