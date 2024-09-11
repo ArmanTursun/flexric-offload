@@ -405,42 +405,43 @@ node_idx = 0
 
 slice_cb = SLICECallback()
 hndlr = ric.report_slice_sm(conn[node_idx].id, ric.Interval_ms_5, slice_cb)
-time.sleep(5)
+time.sleep(1)
 
+for a in range(1000):
 ####################
 ####  SLICE CTRL ADD
 ####################
 
-msg = fill_slice_ctrl_msg("ADDMOD", add_static_slices)
-ric.control_slice_sm(conn[node_idx].id, msg)
-time.sleep(20)
+	msg = fill_slice_ctrl_msg("ADDMOD", add_static_slices)
+	ric.control_slice_sm(conn[node_idx].id, msg)
+	#time.sleep(1)
 
 ####################
 ####  SLICE CTRL ASSOC
 ####################
 
-msg = fill_slice_ctrl_msg("ASSOC_UE_SLICE", assoc_ue_slice)
-ric.control_slice_sm(conn[node_idx].id, msg)
-time.sleep(20)
+	msg = fill_slice_ctrl_msg("ASSOC_UE_SLICE", assoc_ue_slice)
+	ric.control_slice_sm(conn[node_idx].id, msg)
+	#time.sleep(1)
 
 ####################
 ####  SLICE CTRL DEL
 ####################
 
-msg = fill_slice_ctrl_msg("DEL", delete_slices)
-ric.control_slice_sm(conn[node_idx].id, msg)
-time.sleep(10)
+	msg = fill_slice_ctrl_msg("DEL", delete_slices)
+	ric.control_slice_sm(conn[node_idx].id, msg)
+	#time.sleep(1)
 
 ####################
 ####  SLICE CTRL RESET
 ####################
 
-msg = fill_slice_ctrl_msg("ADDMOD", reset_slices)
-ric.control_slice_sm(conn[node_idx].id, msg)
-time.sleep(5)
+	msg = fill_slice_ctrl_msg("ADDMOD", reset_slices)
+	ric.control_slice_sm(conn[node_idx].id, msg)
+	#time.sleep(1)
 
-with open("rt_slice_stats.json", "w") as outfile:
-    outfile.write(json.dumps({}))
+	with open("rt_slice_stats.json", "w") as outfile:
+    		outfile.write(json.dumps({}))
 
 ### End
 ric.rm_report_slice_sm(hndlr)

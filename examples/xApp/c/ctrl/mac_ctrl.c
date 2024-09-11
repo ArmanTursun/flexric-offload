@@ -21,6 +21,7 @@
 
 #include "../../../../src/xApp/e42_xapp_api.h"
 #include "../../../../src/util/alg_ds/alg/defer.h"
+#include "../../../../src/util/time_now_us.h"
 
 #include <pthread.h>
 #include <stdlib.h>
@@ -28,6 +29,42 @@
 #include <signal.h>
 #include <time.h>
 #include <unistd.h>
+
+static
+void log_mac_stats(mac_ue_stats_impl_t* rd)
+{
+  printf("rnti: %u \n", rd->rnti);
+  //printf("ul_curr_tbs: %ld \n", rd->ul_curr_tbs);
+  //printf("ul_sched_rb: %ld \n", rd->ul_sched_rb);
+  //printf("dl_aggr_tbs: %ld \n", rd->dl_aggr_tbs);
+  //printf("dl_curr_tbs: %ld \n", rd->dl_curr_tbs);
+  //printf("dl_sched_rb: %ld \n", rd->dl_sched_rb);
+}
+
+static
+uint64_t cnt_mac;
+
+static
+void sm_cb_mac(sm_ag_if_rd_t const* rd)
+{
+  assert(rd != NULL);
+  assert(rd->type ==INDICATION_MSG_AGENT_IF_ANS_V0);
+  assert(rd->ind.type == MAC_STATS_V0);
+ 
+  int64_t now = time_now_us();
+  if(cnt_mac % 1024 == 0){
+    for (size_t i = 0; i < rd->ind.mac.msg.len_ue_stats; i++){
+      mac_ue_stats_impl_t* ue_context = &rd->ind.mac.msg.ue_stats[i];
+      printf("UE %d:\n", ue_context->rnti);
+      log_mac_stats(ue_context);
+    }
+    printf("MAC ind_msg latency = %ld μs\n", now - rd->ind.mac.msg.tstamp);
+    printf("\n");
+  }
+  cnt_mac++;
+}
+
+
 
 int main(int argc, char *argv[])
 {
@@ -44,6 +81,15 @@ int main(int argc, char *argv[])
 
   printf("Connected E2 nodes = %d\n", nodes.len);
 
+  // MAC indication
+  const char* i_0 = "1_ms";
+  sm_ans_xapp_t* mac_handle = NULL;
+
+  if(nodes.len > 0){
+    mac_handle = calloc( nodes.len, sizeof(sm_ans_xapp_t) ); 
+    assert(mac_handle  != NULL);
+  }
+
   for (int i = 0; i < nodes.len; i++) {
     e2_node_connected_xapp_t* n = &nodes.n[i];
 
@@ -51,9 +97,15 @@ int main(int argc, char *argv[])
       printf("Registered node %d ran func id = %d \n ", i, n->rf[j].id);
 
     if(n->id.type == ngran_gNB || n->id.type == ngran_gNB_DU){
+      // mac report
+      mac_handle[i] = report_sm_xapp_api(&nodes.n[i].id, 142, (void*)i_0, sm_cb_mac);
+      assert(mac_handle[i].success == true);
+
+      // mac control
       mac_ctrl_req_data_t wr = {.hdr.dummy = 1, .msg.action = 42 };
       sm_ans_xapp_t const a = control_sm_xapp_api(&nodes.n[i].id, 142, &wr);
       assert(a.success == true);
+
      } else {
        printf("Cannot send MAC ctrl to if the E2 Node is not a GNB or DU\n");
     }

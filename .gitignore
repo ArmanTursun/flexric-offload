@@ -1,5 +1,4 @@
 *.out 
-*.py
 *.swp
 *.json
 *.DS_Store
