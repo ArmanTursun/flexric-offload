@@ -104,15 +104,15 @@ class MACCallback(ric.mac_cb):
                 ue_stats = ind.ue_stats[i]
 
                 # Calculate average energy from the TBS data
-                total_energy = 0
-                for tbs_stat in ue_stats.tbs[:ue_stats.num_tbs]:
-                    total_energy += tbs_stat.latency
-                avg_energy = total_energy / ue_stats.num_tbs if ue_stats.num_tbs > 0 else 0
+                #total_energy = 0
+                #for tbs_stat in ue_stats.tbs[:ue_stats.num_tbs]:
+                    #total_energy += tbs_stat.latency
+                #avg_energy = total_energy / ue_stats.num_tbs if ue_stats.num_tbs > 0 else 0
 
                 # Add the new BLER and energy data to the AggrData object
                 with global_lock:
-                    global_ue_aggr_data.add_bler(ue_stats.context.ul_bler, ind.tstamp)
-                    global_ue_aggr_data.add_energy(avg_energy, ind.tstamp)
+                    global_ue_aggr_data.add_bler(ue_stats.ul_bler, ind.tstamp)
+                    global_ue_aggr_data.add_energy(ue_stats.dl_bler, ind.tstamp)
 
 
 ####################
@@ -135,8 +135,8 @@ for conn_id in range(0, len(conn)):
 def send_action(action):
     msg = ric.mac_ctrl_msg_t()
     msg.action = 42
-    msg.tms = time.time_ns() / 1000.0
-    msg.num_ues = 1
+    #msg.tms = time.time_ns() / 1000.0
+    #msg.num_ues = 1
     #ues = ric.mac_ue_ctrl_array(msg.num_ues)
 
     # Assign values to each element of the array
@@ -152,10 +152,10 @@ def send_action(action):
     #if np.isnan(action).any() or np.isinf(action).any():
         #action[1] = 0.0
 
-    ues = ric.mac_ue_ctrl_t()  # Create a single UE
-    ues.rnti = 1
-    ues.offload = float(action[1])  # Assign fixed value
-    msg.ues = ues  # Pass the single UE to the control message
+    #ues = ric.mac_ue_ctrl_t()  # Create a single UE
+    #ues.rnti = 1
+    #ues.offload = float(action[1])  # Assign fixed value
+    #msg.ues = ues  # Pass the single UE to the control message
     #print(f"Assigned offload: {ues.offload}")
 
     
