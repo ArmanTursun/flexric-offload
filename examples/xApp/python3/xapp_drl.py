@@ -100,19 +100,19 @@ class MACCallback(ric.mac_cb):
     def handle(self, ind):
         # save bler and energy values of each tbs of each ue into aggr_data
         if len(ind.ue_stats) > 0:
-                ue_stats = ind.ue_stats[0]
+            ue_stats = ind.ue_stats[0]
 
-                # Calculate average energy from the TBS data
-                #total_energy = 0
-                #for tbs_stat in ue_stats.tbs[:ue_stats.num_tbs]:
-                    #total_energy += tbs_stat.latency
-                #avg_energy = total_energy / ue_stats.num_tbs if ue_stats.num_tbs > 0 else 0
+            # Calculate average energy from the TBS data
+            #total_energy = 0
+            #for tbs_stat in ue_stats.tbs[:ue_stats.num_tbs]:
+                #total_energy += tbs_stat.latency
+            #avg_energy = total_energy / ue_stats.num_tbs if ue_stats.num_tbs > 0 else 0
 
-                # Add the new BLER and energy data to the AggrData object
-                with global_lock:
-                    global_ue_aggr_data.add_bler(ue_stats.ul_bler, ind.tstamp)
-                    global_ue_aggr_data.add_energy(ue_stats.dl_bler, ind.tstamp)
-                print(ue_stats.ul_bler, ue_stats.dl_bler)
+            # Add the new BLER and energy data to the AggrData object
+            #with global_lock:
+            global_ue_aggr_data.add_bler(ue_stats.ul_bler, ind.tstamp)
+            global_ue_aggr_data.add_energy(ue_stats.dl_bler, ind.tstamp)
+            #print(ue_stats.ul_bler, ue_stats.dl_bler)
 
             
 ####################
@@ -248,10 +248,10 @@ def run_drl(stop_event, num_epochs=10, max_steps_per_epoch=200, warmup_steps=0):
         print(f"Epoch {epoch + 1}/{num_epochs}")
 
         while True:
-            with global_lock:
+            #with global_lock:
                 # Retrieve the current aggregated state from the environment (RAN)
-                current_bler = global_ue_aggr_data.get_bler_stats()
-                current_energy = global_ue_aggr_data.get_energy_stats()
+            current_bler = global_ue_aggr_data.get_bler_stats()
+            current_energy = global_ue_aggr_data.get_energy_stats()
 
             # Normalize the initial state
             current_state = state_normalizer.normalize_state(current_bler[0], current_bler[1],
@@ -267,6 +267,8 @@ def run_drl(stop_event, num_epochs=10, max_steps_per_epoch=200, warmup_steps=0):
         ddpg_agent.reset_noise()
         total_reward = 0
 
+        time_last = time.time_ns() / 1000.0
+
         # Run the steps for each epoch
         for step in range(max_steps_per_epoch):
             #if step < warmup_steps:
@@ -275,11 +277,15 @@ def run_drl(stop_event, num_epochs=10, max_steps_per_epoch=200, warmup_steps=0):
                 #continue  # Skip training until valid states are generated
 
             # Generate action using DDPG agent
+            
             action = ddpg_agent.get_action(current_state)
             #print("Actions:", action)
 
             # Send the action to the RAN via control message
-            send_action(action)
+            time_now = time.time_ns() / 1000.0
+            if (time_now - time_last > 100):
+                send_action(action)
+                time_last = time_now
 
             with global_lock:
                 # Get the next state after applying the action

@@ -157,6 +157,17 @@ void rm_report_mac_sm(int handle)
 }
 
 
+void control_mac_sm(global_e2_node_id_t* id, mac_ctrl_msg_t* ctrl)
+{
+  assert(id != NULL);
+  assert(ctrl != NULL);
+
+  mac_ctrl_req_data_t cp = {.msg = cp_mac_ctrl_msg(ctrl)};
+  cp.hdr.dummy = 1;
+  control_sm_xapp_api(id, SM_MAC_ID, &cp);
+}
+
+
 //////////////////////////////////////
 // RLC SM   
 /////////////////////////////////////
