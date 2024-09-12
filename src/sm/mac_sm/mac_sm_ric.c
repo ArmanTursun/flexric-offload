@@ -213,10 +213,9 @@ void free_ind_data_mac_sm_ric(void* msg)
 
   free_mac_ind_hdr(&ind->hdr); 
   free_mac_ind_msg(&ind->msg); 
-  assert(ind->proc_id == NULL && "Not implemented");
-  if(ind->proc_id != NULL){
-    free_mac_call_proc_id(ind->proc_id);
-  }
+  //assert(ind->proc_id == NULL && "Not implemented");
+  //if(ind->proc_id != NULL){
+    //free_mac_call_proc_id(ind->proc_id);
 }
 
 static

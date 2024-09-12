@@ -129,15 +129,25 @@ sm_ctrl_out_data_t on_control_mac_sm_ag(sm_agent_t const* sm_agent, sm_ctrl_req_
 
   mac_ctrl_req_data_t mac_ctrl = {0};
   mac_ctrl.hdr.dummy = hdr.dummy;
+  defer({ free_mac_ctrl_hdr(&mac_ctrl.hdr ); });
   mac_ctrl.msg.action = msg.action;
+  defer({ free_mac_ctrl_msg(&mac_ctrl.msg ); });
 
-  sm->base.io.write_ctrl(&mac_ctrl);
+  sm_ag_if_ans_t ans = sm->base.io.write_ctrl(&mac_ctrl);
+  assert(ans.type == CTRL_OUTCOME_SM_AG_IF_ANS_V0);
+  assert(ans.ctrl_out.type == MAC_AGENT_IF_CTRL_ANS_V0);
+ 
+
+  defer({free_mac_ctrl_out(&ans.ctrl_out.mac); });
+
   sm_ctrl_out_data_t ret = {0};
-  ret.len_out = 0;
-  ret.ctrl_out = NULL;
+  //ret.len_out = 0;
+  //ret.ctrl_out = NULL;
 
   //printf("on_control called \n");
   return ret;
+
+  
 }
 
 static

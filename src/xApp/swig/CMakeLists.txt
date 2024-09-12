@@ -123,7 +123,9 @@ set_property(TARGET xapp_sdk PROPERTY SWIG_COMPILE_DEFINITIONS ${E2AP_VERSION})
 if(XAPP_TARGET_LANGUAGE STREQUAL "PYTHON_LANG")
   ADD_COMPILE_DEFINITIONS(XAPP_LANG_PYTHON)
   #SWIG_LINK_LIBRARIES(xapp_sdk ${PYTHON_LIBRARIES})
-  SWIG_LINK_LIBRARIES(xapp_sdk ${PYTHON_LIBRARY_DIR})
+  #SWIG_LINK_LIBRARIES(xapp_sdk ${PYTHON_LIBRARY_DIR})
+  SWIG_LINK_LIBRARIES(xapp_sdk /home/nakaolab/.pyenv/versions/3.9.5/lib/libpython3.9.so)
+
 
 
    add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_BINARY_DIR}/_xapp_sdk.so" "${CMAKE_BINARY_DIR}/examples/xApp/python3/_xapp_sdk.so" )
