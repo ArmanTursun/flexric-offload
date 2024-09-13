@@ -152,7 +152,11 @@ e2ap_msg_t e2ap_msg_handle_xapp(e42_xapp_t* xapp, const e2ap_msg_t* msg)
 
   pending_event_xapp_t ev = {.ev = E42_RIC_SUBSCRIPTION_REQUEST_PENDING_EVENT,
                              .id = rv.val.id};
-  // Remove pending event  
+  // Remove pending event 
+  //if (bi_map_size(&xapp->pending.pending) == 0){
+  //	add_pending_event_xapp(xapp, &ev);
+	//rm_pending_event_xapp(xapp, &ev);
+  //}
   rm_pending_event_xapp(xapp, &ev);
 
   // Unblock UI thread  
@@ -290,13 +294,16 @@ sm_ind_data_t ind_sm_payload(ric_indication_t const* src)
   act_proc_ans_t rv = find_act_proc(&xapp->act_proc, ack->ric_id.ric_req_id);
   assert(rv.ok == true && "ric_req_id not registered in the registry");
 
-  printf("[xApp]: CONTROL ACK rx\n");
+  //printf("[xApp]: CONTROL ACK rx\n");
 
   // A pending event is created along with a timer of 5000 ms,
   // after which an event will be generated
-  pending_event_xapp_t ev = {.ev = E42_RIC_CONTROL_REQUEST_PENDING_EVENT, .id = rv.val.id };
+  pending_event_xapp_t ev = {.ev = E42_RIC_CONTROL_REQUEST_PENDING_EVENT, .id = rv.val.id};
 
   // Stop the timer
+  //if (bi_map_size(&xapp->pending.pending) == 0){
+//	add_pending_event_xapp(xapp, &ev);
+  //}
   rm_pending_event_xapp(xapp, &ev);
 
   // Unblock UI thread  
@@ -577,7 +584,7 @@ e2ap_msg_t e2ap_handle_e42_ric_control_request_xapp(e42_xapp_t* xapp, const e2ap
 
   e2ap_send_bytes_xapp(&xapp->ep, ba_msg);
 
-  printf("[xApp]: CONTROL-REQUEST tx \n");
+  //printf("[xApp]: CONTROL-REQUEST tx \n");
 
   pending_event_xapp_t ev = {.ev = E42_RIC_CONTROL_REQUEST_PENDING_EVENT,
     .id = cr->ctrl_req.ric_id,

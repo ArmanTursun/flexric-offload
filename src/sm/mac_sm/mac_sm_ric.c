@@ -145,7 +145,7 @@ sm_ag_if_ans_ctrl_t ric_on_control_out_mac_sm_ric(sm_ric_t const* sm_ric,const s
 
   sm_ag_if_ans_ctrl_t ag_if = {.type =  MAC_AGENT_IF_CTRL_ANS_V0};  
   ag_if.mac = mac_dec_ctrl_out(&sm->enc, out->len_out, out->ctrl_out);
-  assert(ag_if.mac.ans ==  MAC_CTRL_OUT_OK);
+  assert(ag_if.mac.ans ==  MAC_CTRL_OUT_OK && "ric_on_control_out is not ok");
 
   return ag_if;
 }

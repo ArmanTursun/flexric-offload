@@ -120,6 +120,7 @@ class MACCallback(ric.mac_cb):
 ####################
 
 ric.init()
+time.sleep(1)
 conn_id = 0
 conn = ric.conn_e2_nodes()
 assert(len(conn) > 0)
@@ -136,7 +137,7 @@ def send_action(action):
     msg = ric.mac_ctrl_msg_t()
     msg.action = 42
     #msg.tms = time.time_ns() / 1000.0
-    #msg.num_ues = 1
+    msg.offload = float(action[1])
     #ues = ric.mac_ue_ctrl_array(msg.num_ues)
 
     # Assign values to each element of the array
@@ -171,67 +172,8 @@ def calculate_reward(current_bler, current_energy, previous_bler, previous_energ
 #################################
 #### DRL main method
 #################################
-'''
-def run_drl(stop_event):
 
-    state_normalizer = StateNormalizer()
-
-    current_bler = 0
-    current_energy = 0
-    next_bler = 0
-    next_energy = 0
-
-    with global_lock:
-        # Retrieve the current aggregated state from the environment (RAN)
-        current_bler = global_ue_aggr_data.get_bler_stats()
-        current_energy = global_ue_aggr_data.get_energy_stats()
-        
-    #while not stop_event.is_set():
-    for step in range(200):
-
-        #current_state = np.array([current_bler, current_energy])
-        current_state = state_normalizer.normalize_state(current_bler[0], current_bler[1], 
-                                                         current_bler[2], current_bler[3], 
-                                                         current_energy[0], current_energy[1], 
-                                                         current_energy[2], current_energy[3])
-
-        # Generate action using DDPG agent
-        action = ddpg_agent.get_action(current_state)
-        print("Actions:", action)
-        
-        # Send the action to the RAN via control message
-        send_action(action)
-        with global_lock:
-            # Get the next state after applying the action
-            next_bler = global_ue_aggr_data.get_bler_stats()
-            next_energy = global_ue_aggr_data.get_energy_stats()
-            #next_state = np.array([next_bler, next_energy])
-
-        next_state = state_normalizer.normalize_state(next_bler[0], next_bler[1], 
-                                                         next_bler[2], next_bler[3], 
-                                                         next_energy[0], next_energy[1], 
-                                                         next_energy[2], next_energy[3])
-        
-        # Calculate reward based on the transition (current_state -> next_state)
-        reward = calculate_reward(next_bler[0], next_energy[0], current_bler[0], current_energy[0])
-
-        # Remember the transition in the DDPG agent's memory
-        ddpg_agent.remember(current_state, action, reward, False, next_state)
-
-        # Train the DDPG agent with a batch of experiences
-        ddpg_agent.train()
-
-        # Update the previous state for the next iteration
-        current_bler = next_bler
-        current_energy = next_energy
-
-        # Update the actor and critic loss monitoring
-        actor_loss = ddpg_agent.actor_loss
-        critic_loss = ddpg_agent.critic_loss
-        print(f"Step {step + 1} - Actor Loss: {actor_loss:.5f}, Critic Loss: {critic_loss:.5f}")
-'''
-
-def run_drl(stop_event, num_epochs=10, max_steps_per_epoch=200, warmup_steps=0):
+def run_drl(stop_event, num_epochs=100, max_steps_per_epoch=200, warmup_steps=0):
     """
     Run the DDPG training for a specified number of epochs.
     
@@ -282,10 +224,10 @@ def run_drl(stop_event, num_epochs=10, max_steps_per_epoch=200, warmup_steps=0):
             #print("Actions:", action)
 
             # Send the action to the RAN via control message
-            time_now = time.time_ns() / 1000.0
-            if (time_now - time_last > 100):
-                send_action(action)
-                time_last = time_now
+            #time_now = time.time_ns() / 1000.0
+            #if (time_now - time_last > 100000):
+            send_action(action)
+            #    time_last = time_now
 
             with global_lock:
                 # Get the next state after applying the action
@@ -339,7 +281,6 @@ def run_drl(stop_event, num_epochs=10, max_steps_per_epoch=200, warmup_steps=0):
 ##############################
 #### MAC IND&CTRL with DRL
 ##############################
-
 mac_hndlr = []
 for i in range(0, len(conn)):
     mac_cb = MACCallback()
@@ -354,6 +295,10 @@ try:
     drl_thread = threading.Thread(target=run_drl, args=(stop_event,))
     drl_thread.daemon = True  # Ensures the thread exits when the main program exits
     drl_thread.start()
+
+    #drl_thread = threading.Thread(target=run_moni, args=(stop_event,))
+    #drl_thread.daemon = True  # Ensures the thread exits when the main program exits
+    #drl_thread.start()
 
     # Simulate main program running for a long time or until Ctrl+C is pressed
     time.sleep(1000)

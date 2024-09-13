@@ -102,10 +102,11 @@ int main(int argc, char *argv[])
       assert(mac_handle[i].success == true);
 
       // mac control
-      mac_ctrl_req_data_t wr = {.hdr.dummy = 1, .msg.action = 42 };
-      sm_ans_xapp_t const a = control_sm_xapp_api(&nodes.n[i].id, 142, &wr);
-      assert(a.success == true);
-
+      while (true){
+      	mac_ctrl_req_data_t wr = {.hdr.dummy = 1, .msg.action = 42 };
+      	sm_ans_xapp_t const a = control_sm_xapp_api(&nodes.n[i].id, 142, &wr);
+      	assert(a.success == true);
+      }
      } else {
        printf("Cannot send MAC ctrl to if the E2 Node is not a GNB or DU\n");
     }

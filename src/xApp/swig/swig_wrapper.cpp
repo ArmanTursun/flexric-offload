@@ -21,6 +21,7 @@
 #include <cstdlib>
 #include <pthread.h>
 #include <unistd.h>
+#include <poll.h>
 #include <iostream>
 
 static
@@ -165,6 +166,8 @@ void control_mac_sm(global_e2_node_id_t* id, mac_ctrl_msg_t* ctrl)
   mac_ctrl_req_data_t cp = {.msg = cp_mac_ctrl_msg(ctrl)};
   cp.hdr.dummy = 1;
   control_sm_xapp_api(id, SM_MAC_ID, &cp);
+  free_mac_ctrl_msg(&cp.msg);
+  poll(NULL, 0, 10);
 }
 
 

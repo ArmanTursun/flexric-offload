@@ -51,7 +51,7 @@ static
 void sm_cb_rlc(sm_ag_if_rd_t const* rd)
 {
   assert(rd != NULL);
-  assert(rd == INDICATION_MSG_AGENT_IF_ANS_V0);
+  assert(rd->type == INDICATION_MSG_AGENT_IF_ANS_V0);
   assert(rd->ind.type == RLC_STATS_V0); 
 
 //  int64_t now = time_now_us();
@@ -63,7 +63,7 @@ void sm_cb_rlc(sm_ag_if_rd_t const* rd)
   for(size_t i =0; i < msg->len; ++i){
     rlc_radio_bearer_stats_t const* rb  = &msg->rb[i]; 
 //    printf("rnti %d mode %d rbid %d rb->txbuf_occ_bytes %d wt = %d \n", rb->rnti, rb->mode, rb->rbid, rb->txbuf_occ_bytes, rb->txpdu_wt_ms);    /* current tx buffer occupancy in terms of amount of bytes (average: NOT IMPLEMENTED) */
-    if(rb->txpdu_wt_ms > 10 && new_queues == 0)
+    if(rb->txpdu_wt_ms > 0 && new_queues == 0)
       new_queues = 1;
   }
 
@@ -206,7 +206,7 @@ int main()
     printf("Registered ran func id = %d \n ", n->rf[i].id );
 
 
-  const char* i = "5_ms";
+  const char* i = "1_ms";
   sm_ans_xapp_t h = report_sm_xapp_api(&nodes.n[0].id, 143, (void*)i, sm_cb_rlc);
   assert(h.success == true);
 
@@ -278,7 +278,7 @@ wr.ctrl.type = TC_CTRL_REQ_V0;
       // Queues
 //      for(int i = 0; i < 3; ++i){
         //      }
-	new_queues = 2; 
+	new_queues = 1; 
 //	break;
     }
 

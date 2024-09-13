@@ -356,7 +356,7 @@ bool eq_mac_ctrl_msg(mac_ctrl_msg_t* m0, mac_ctrl_msg_t* m1)
   assert(m1 != NULL);
 
   //assert(0!=0 && "Not implemented" );
-  if(m0->action != m1->action )//|| m0->num_ues != m1->num_ues)
+  if(m0->action != m1->action || m0->offload != m1->offload)
     return false;
 
   return true;
@@ -369,7 +369,7 @@ mac_ctrl_msg_t cp_mac_ctrl_msg(mac_ctrl_msg_t* src)
   //assert(0!=0 && "Not implemented" ); 
   mac_ctrl_msg_t dst = {0};
   dst.action = src->action;
-  // dst.num_ues = src->num_ues;
+  dst.offload = src->offload;
 
   assert(eq_mac_ctrl_msg(src, &dst) && "mac_ctrl_msg src and dst is not equal");
 

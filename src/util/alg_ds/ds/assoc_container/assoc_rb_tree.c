@@ -390,9 +390,9 @@ assoc_node_t* minimum(assoc_rb_tree_t const* tree, assoc_node_t* x_node)
 static
 assoc_node_t* find_rb_tree(assoc_rb_tree_t* tree, assoc_node_t* node, void* key)
 {
-  assert(tree != NULL);
-  assert(node != NULL);
-  assert(key != NULL);
+  assert(tree != NULL && "tree is null");
+  assert(node != NULL && "node is null");
+  assert(key != NULL  && "key is null");
 
  while(node != tree->dummy){
     int rc = tree->comp(key, node->key); 
