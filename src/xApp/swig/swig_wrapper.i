@@ -89,6 +89,15 @@
 
 #endif
 
+
+%typemap(in) float {
+    $1 = (float)PyFloat_AsDouble($input);
+}
+
+%typemap(out) float {
+    $result = PyFloat_FromDouble((double)$1);
+}
+
 %feature("director") mac_cb;
 %feature("director") rlc_cb;
 %feature("director") pdcp_cb;

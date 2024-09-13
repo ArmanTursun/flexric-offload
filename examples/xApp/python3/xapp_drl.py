@@ -138,6 +138,7 @@ def send_action(action):
     msg.action = 42
     #msg.tms = time.time_ns() / 1000.0
     msg.offload = float(action[1])
+    #print(action[1], msg.offload)
     #ues = ric.mac_ue_ctrl_array(msg.num_ues)
 
     # Assign values to each element of the array
@@ -221,7 +222,7 @@ def run_drl(stop_event, num_epochs=100, max_steps_per_epoch=200, warmup_steps=0)
             # Generate action using DDPG agent
             
             action = ddpg_agent.get_action(current_state)
-            #print("Actions:", action)
+            print("Actions:", action)
 
             # Send the action to the RAN via control message
             #time_now = time.time_ns() / 1000.0
