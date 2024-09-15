@@ -8,8 +8,8 @@ from networks.critic import Critic
 from ou_noise import OUNoise
 
 class DDPG:
-    def __init__(self, state_size, action_size, actor_hidden_units=(300, 600),
-                 actor_learning_rate=0.0001, critic_hidden_units=(300, 600),
+    def __init__(self, state_size, action_size, actor_hidden_units=(128, 128),
+                 actor_learning_rate=0.0001, critic_hidden_units=(256, 256),
                  critic_learning_rate=0.001, batch_size=64, discount=0.99,
                  memory_size=10000, tau=0.001, gradient_clip_value=0.5):
         

@@ -4,6 +4,7 @@ import threading
 from aggr_data import AggrData
 from ddpg import DDPG
 import numpy as np
+import csv
 
 #############################################
 ###  TODO
@@ -22,20 +23,22 @@ import numpy as np
 
 # Global dictionary to store bler and energy data
 # It keeps an window of 1000 of most recent data
-global_ue_aggr_data = AggrData(1000)
+global_ue_aggr_data = AggrData(10)
 
 # Global lock to ensure thread-safe access to the global dictionary
 global_lock = threading.Lock()
 
 # DDPG Parameters
-state_dim = 8  # BLER and energy
+state_dim = 6  # BLER and energy
 action_dim = 2  # Weight for BLER and energy
-actor_lr = 1e-4
-critic_lr = 1e-3
-gamma = 0.99
+actor_lr = 1e-5
+critic_lr = 1e-5
+gamma = 0.995
 tau = 0.001
-buffer_size = 100000
+buffer_size = 10000
 batch_size = 64
+actor_hidden_units=(256, 256)
+critic_hidden_units=(256, 256)
 ddpg_agent = DDPG(state_size = state_dim, action_size = action_dim,actor_learning_rate=actor_lr, critic_learning_rate=critic_lr, 
     batch_size=batch_size, discount=gamma, memory_size=buffer_size, tau=tau)
 
@@ -83,8 +86,8 @@ class StateNormalizer:
         normalized_energy_skewness = self.normalize_energy_skewness(energy_skewness)
 
         # Return the normalized state
-        return np.array([normalized_bler_mean, normalized_bler_max, normalized_bler_min, normalized_bler_skewness,
-                         normalized_energy_mean, normalized_energy_max, normalized_energy_min, normalized_energy_skewness])
+        return np.array([normalized_bler_mean, normalized_bler_max, normalized_bler_min, #normalized_bler_skewness,
+                         normalized_energy_mean, normalized_energy_max, normalized_energy_min])#, normalized_energy_skewness])
 
 
 ##################################################
@@ -96,23 +99,20 @@ class MACCallback(ric.mac_cb):
     def __init__(self):
         # Call C++ base class constructor
         ric.mac_cb.__init__(self)
+        self.ind_num = 0
 
     def handle(self, ind):
         # save bler and energy values of each tbs of each ue into aggr_data
         if len(ind.ue_stats) > 0:
             ue_stats = ind.ue_stats[0]
 
-            # Calculate average energy from the TBS data
-            #total_energy = 0
-            #for tbs_stat in ue_stats.tbs[:ue_stats.num_tbs]:
-                #total_energy += tbs_stat.latency
-            #avg_energy = total_energy / ue_stats.num_tbs if ue_stats.num_tbs > 0 else 0
-
             # Add the new BLER and energy data to the AggrData object
             #with global_lock:
-            global_ue_aggr_data.add_bler(ue_stats.ul_bler, ind.tstamp)
-            global_ue_aggr_data.add_energy(ue_stats.dl_bler, ind.tstamp)
+            if (self.ind_num is not 0):
+                global_ue_aggr_data.add_bler(ue_stats.ul_bler, ind.tstamp)
+                global_ue_aggr_data.add_energy(ue_stats.dl_bler, ind.tstamp)
             #print(ue_stats.ul_bler, ue_stats.dl_bler)
+            self.ind_num = 1
 
             
 ####################
@@ -136,45 +136,107 @@ for conn_id in range(0, len(conn)):
 def send_action(action):
     msg = ric.mac_ctrl_msg_t()
     msg.action = 42
-    #msg.tms = time.time_ns() / 1000.0
     msg.offload = float(action[1])
-    #print(action[1], msg.offload)
-    #ues = ric.mac_ue_ctrl_array(msg.num_ues)
-
-    # Assign values to each element of the array
-    #for i in range(msg.num_ues):
-        #ues[i] = ric.mac_ue_ctrl_t()
-        #ues[i].rnti = i
-        #ues[i].offload = float(action[1])  # Convert action[i] to float explicitly
-        #print(f"Assigned offload for UE {i}: {ues[i].offload}")  # Debugging info
-
-    # Explicitly assign the array back to msg.ues
-    #msg.ues = ues
-
-    #if np.isnan(action).any() or np.isinf(action).any():
-        #action[1] = 0.0
-
-    #ues = ric.mac_ue_ctrl_t()  # Create a single UE
-    #ues.rnti = 1
-    #ues.offload = float(action[1])  # Assign fixed value
-    #msg.ues = ues  # Pass the single UE to the control message
-    #print(f"Assigned offload: {ues.offload}")
-
     
     # Call the C++ function, which should now receive the correctly populated array
     ric.control_mac_sm(conn[i].id, msg)
-
+'''
 # Reward function calculation (this is an example, modify as per your needs)
 def calculate_reward(current_bler, current_energy, previous_bler, previous_energy):
     reward = - (np.log(1 + current_bler / (previous_bler + 1e-6)) + 
                 np.log(1 + current_energy / (previous_energy + 1e-6)))
     return reward
+'''
+
+def calculate_reward_no_thresholds(current_bler, current_energy, alpha=1.0, beta=1.0):
+    """
+    Reward function that penalizes BLER and energy directly, without thresholds.
+
+    Args:
+    - current_bler (float): Current BLER value (should be between 0 and 1).
+    - current_energy (float): Current energy consumption.
+    - alpha (float): Weight for the BLER penalty.
+    - beta (float): Weight for the energy penalty.
+
+    Returns:
+    - reward (float): The calculated reward based on the current BLER and energy.
+    """
+    # Penalize current BLER and energy directly
+    bler_penalty = np.log(1 + current_bler)
+    energy_penalty = np.log(1 + current_energy)
+
+    # Combine penalties with weights alpha and beta
+    reward = -(alpha * bler_penalty + beta * energy_penalty)
+    
+    return reward
+
+def calculate_reward_bler_threshold(current_bler, current_energy, bler_threshold, alpha=1.0, beta=1.0):
+    """
+    Reward function with a threshold for BLER and direct penalty for energy.
+
+    Args:
+    - current_bler (float): Current BLER value (should be between 0 and 1).
+    - current_energy (float): Current energy consumption.
+    - bler_threshold (float): Threshold for acceptable BLER.
+    - alpha (float): Weight for the BLER penalty.
+    - beta (float): Weight for the energy penalty.
+
+    Returns:
+    - reward (float): The calculated reward based on the current BLER and energy.
+    """
+    # Penalize BLER if it exceeds the threshold
+    bler_penalty = np.log(1 + current_bler / (bler_threshold + 1e-6))
+    
+    # Penalize energy directly
+    energy_penalty = np.log(1 + current_energy)
+
+    # Combine penalties with weights alpha and beta
+    reward = -(alpha * bler_penalty + beta * energy_penalty)
+    
+    return reward
+
+
+#def calculate_reward(current_bler, current_energy, previous_bler, previous_energy):
+    #reward = - (np.log(1 + current_bler / (previous_bler + 1e-6)) + 
+    #            np.log(1 + current_energy / (previous_energy + 1e-6)))
+    #return reward
+
+'''
+def calculate_reward(current_bler, current_energy, bler_threshold=0.05, penalty_factor=100):
+    # Penalty if BLER exceeds the threshold
+    if current_bler > bler_threshold:
+        penalty = penalty_factor * (current_bler - bler_threshold)
+    else:
+        penalty = 0  # No penalty if BLER is below the threshold
+
+    # BLER term: reward for lower BLER (negative because higher BLER is worse)
+    bler_term = - current_bler
+
+    # Energy term: penalize for high energy consumption (directly)
+    energy_term = - current_energy
+
+    # Final reward: a combination of BLER and energy terms, with penalty for high BLER
+    reward = bler_term - penalty + energy_term
+
+    return reward
+'''
 
 #################################
 #### DRL main method
 #################################
+file_name_reward = '/home/nakaolab/drl_reward.csv'
+file_name_memory = '/home/nakaolab/drl_memory.csv'
+def write_reward_to_csv(reward, time_now, file_name):
+    with open(file_name, mode = 'a', newline = '') as file:
+        writer = csv.writer(file)
+        writer.writerow([reward, time_now])
 
-def run_drl(stop_event, num_epochs=100, max_steps_per_epoch=200, warmup_steps=0):
+def write_memory_to_csv(current_state, action, reward, done, next_state, time_now, file_name):
+    with open(file_name, mode = 'a', newline = '') as file:
+        writer = csv.writer(file)
+        writer.writerow([action, reward, done, time_now])
+
+def run_drl(stop_event, num_epochs=10, max_steps_per_epoch=300, warmup_steps=10):
     """
     Run the DDPG training for a specified number of epochs.
     
@@ -210,7 +272,7 @@ def run_drl(stop_event, num_epochs=100, max_steps_per_epoch=200, warmup_steps=0)
         ddpg_agent.reset_noise()
         total_reward = 0
 
-        time_last = time.time_ns() / 1000.0
+        #time_last = time.time_ns() / 1000000.0
 
         # Run the steps for each epoch
         for step in range(max_steps_per_epoch):
@@ -222,18 +284,19 @@ def run_drl(stop_event, num_epochs=100, max_steps_per_epoch=200, warmup_steps=0)
             # Generate action using DDPG agent
             
             action = ddpg_agent.get_action(current_state)
-            print("Actions:", action)
+            #print("Actions:", action)
 
             # Send the action to the RAN via control message
-            #time_now = time.time_ns() / 1000.0
-            #if (time_now - time_last > 100000):
+            time_now = time.time_ns() / 1000000.0
+            #print(time_now)
+            #if (time_now - time_last > 100):
             send_action(action)
-            #    time_last = time_now
+                #time_last = time_now
 
-            with global_lock:
+            #with global_lock:
                 # Get the next state after applying the action
-                next_bler = global_ue_aggr_data.get_bler_stats()
-                next_energy = global_ue_aggr_data.get_energy_stats()
+            next_bler = global_ue_aggr_data.get_bler_stats()
+            next_energy = global_ue_aggr_data.get_energy_stats()
 
             # Normalize the next state
             next_state = state_normalizer.normalize_state(next_bler[0], next_bler[1],
@@ -242,8 +305,9 @@ def run_drl(stop_event, num_epochs=100, max_steps_per_epoch=200, warmup_steps=0)
                                                           next_energy[2], next_energy[3])
 
             # Calculate reward based on the transition (current_state -> next_state)
-            reward = calculate_reward(next_bler[0], next_energy[0], current_bler[0], current_energy[0])
-
+            #reward = calculate_reward(next_bler[0], next_energy[0], current_bler[0], current_energy[0])
+            reward = calculate_reward_bler_threshold(next_bler[0], next_energy[0], 0.05, 1.0, 1.0)
+            #write_reward_to_csv(reward, time_now, file_name_reward)
             # Check if episode is done (you can define your own condition here)
             # E.g., if BLER or energy hits some threshold, we can terminate the episode.
             done = (step == max_steps_per_epoch - 1)# or (reward > some_reward_threshold)
@@ -251,6 +315,7 @@ def run_drl(stop_event, num_epochs=100, max_steps_per_epoch=200, warmup_steps=0)
             # Remember the transition in the DDPG agent's memory
             # print(current_state, action, reward, done, next_state)
             ddpg_agent.remember(current_state, action, reward, done, next_state)
+            write_memory_to_csv(current_state, action, reward, done, next_state, time_now, file_name_memory)
 
             # Train the DDPG agent with a batch of experiences
             ddpg_agent.train()
@@ -287,6 +352,7 @@ for i in range(0, len(conn)):
     mac_cb = MACCallback()
     hndlr = ric.report_mac_sm(conn[i].id, ric.Interval_ms_1, mac_cb)
     mac_hndlr.append(hndlr)
+    time.sleep(1)
 
 try:
     # Create a stop event for the drl thread
@@ -296,10 +362,6 @@ try:
     drl_thread = threading.Thread(target=run_drl, args=(stop_event,))
     drl_thread.daemon = True  # Ensures the thread exits when the main program exits
     drl_thread.start()
-
-    #drl_thread = threading.Thread(target=run_moni, args=(stop_event,))
-    #drl_thread.daemon = True  # Ensures the thread exits when the main program exits
-    #drl_thread.start()
 
     # Simulate main program running for a long time or until Ctrl+C is pressed
     time.sleep(1000)

@@ -298,11 +298,11 @@ sm_ind_data_t ind_sm_payload(ric_indication_t const* src)
 
   // A pending event is created along with a timer of 5000 ms,
   // after which an event will be generated
-  pending_event_xapp_t ev = {.ev = E42_RIC_CONTROL_REQUEST_PENDING_EVENT, .id = rv.val.id};
+  pending_event_xapp_t ev = {.ev = E42_RIC_CONTROL_REQUEST_PENDING_EVENT, .id = rv.val.id, .wait_ms = 10000};
 
   // Stop the timer
   //if (bi_map_size(&xapp->pending.pending) == 0){
-//	add_pending_event_xapp(xapp, &ev);
+  	//add_pending_event_xapp(xapp, &ev);
   //}
   rm_pending_event_xapp(xapp, &ev);
 

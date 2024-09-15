@@ -4,14 +4,14 @@ import torch.optim as optim
 import numpy as np
 
 class Actor(nn.Module):
-    def __init__(self, state_size, action_size, hidden_units=(300, 600), learning_rate=0.0001, tau=0.001):
+    def __init__(self, state_size, action_size, hidden_units=(128, 128), learning_rate=0.0001, tau=0.001):
         """
         Constructor for the Actor network in PyTorch.
 
         Args:
         - state_size (int): Dimension of the input state.
         - action_size (int): Dimension of the output action space (number of weights).
-        - hidden_units (tuple): Number of hidden units in each layer. Default: (300, 600).
+        - hidden_units (tuple): Number of hidden units in each layer. Default: (128, 128).
         - learning_rate (float): Learning rate for training the model. Default: 0.0001.
         - tau (float): Soft update rate for the target network. Default: 0.001.
         """
@@ -21,15 +21,24 @@ class Actor(nn.Module):
         self.action_size = action_size
         self.hidden_units = hidden_units
         self.tau = tau
-        
-        # Define the fully connected layers
+
+        # Define the fully connected layers with reduced hidden units for more stable training
         self.fc1 = nn.Linear(state_size, hidden_units[0])  # First hidden layer
         self.fc2 = nn.Linear(hidden_units[0], hidden_units[1])  # Second hidden layer
         self.fc3 = nn.Linear(hidden_units[1], action_size)  # Output layer
-        
+
         # Initialize the optimizer
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
         
+        # Xavier initialization of weights
+        self.init_weights()
+
+    def init_weights(self):
+        """Initializes the network weights with Xavier uniform initialization."""
+        for layer in [self.fc1, self.fc2, self.fc3]:
+            nn.init.xavier_uniform_(layer.weight)
+            nn.init.zeros_(layer.bias)
+
     def forward(self, state):
         """
         Forward pass for the Actor network.
@@ -54,7 +63,7 @@ class Actor(nn.Module):
         - states (torch.Tensor): Input states of shape (batch_size, state_size).
         - action_gradients (torch.Tensor): Action gradients for updating the network, shape (batch_size, action_size).
         """
-        self.optimizer.zero_grad()
+        self.optimizer.zero_grad()  # Zero out the gradients before backward pass
         actions = self.forward(states)
         loss = -torch.mean(actions * action_gradients)  # The negative sign is for gradient ascent
         loss.backward()
@@ -63,7 +72,7 @@ class Actor(nn.Module):
     def _soft_update(self, target_model, tau=None):
         """
         Soft update of the target model parameters using the main model's parameters.
-        
+
         Args:
         - target_model (Actor): The target actor model to be updated.
         - tau (float): Soft update parameter. If None, the class's tau value is used.
@@ -79,25 +88,25 @@ class Actor(nn.Module):
         """
         self._soft_update(target_model)
 '''
-# Example usage with BLER and Energy states (mean, max, min, skewness)
-bler_state = [0.1, 0.2, 0.05, 0.1]  # Example BLER state (mean, max, min, skewness)
-energy_state = [1.0, 1.5, 0.8, 0.05]  # Example Energy state (mean, max, min, skewness)
+# Example usage
+if __name__ == "__main__":
+    # Example with BLER and Energy states (mean, max, min, skewness)
+    bler_state = [0.1, 0.2, 0.05, 0.1]  # Example BLER state (mean, max, min, skewness)
+    energy_state = [1.0, 1.5, 0.8, 0.05]  # Example Energy state (mean, max, min, skewness)
 
-# Concatenate BLER and energy states
-#state = bler_state + energy_state  # Total state size = 8
-state = np.array(bler_state + energy_state)  # Shape: (6,)
-state_size = len(state)  # 8
-action_size = 2  # Example number of actions (weights)
+    # Concatenate BLER and energy states
+    state = np.array(bler_state + energy_state)  # Shape: (8,)
+    state_size = len(state)  # 8
+    action_size = 2  # Example number of actions (weights)
 
-# Create the actor network
-actor = Actor(state_size, action_size)
+    # Create the actor network
+    actor = Actor(state_size, action_size)
 
-# Example: Convert state to a PyTorch tensor and perform a forward pass
-#state_tensor = torch.FloatTensor([state])  # Shape (1, 8)
-state_tensor = torch.FloatTensor(state).unsqueeze(0).to("cpu")  # Add batch dimension if needed
-actions = actor(state_tensor)  # Forward pass to get actions (weights)
-print(actions)  # The actions (weights) will sum to 1
+    # Convert state to a PyTorch tensor and perform a forward pass
+    state_tensor = torch.FloatTensor(state).unsqueeze(0)  # Add batch dimension if needed
+    actions = actor(state_tensor)  # Forward pass to get actions (weights)
+    print("Actions:", actions)  # The actions (weights) will sum to 1
 
-# Soft update target actor network from actor network
-actor.update_target_model(actor)
+    # Soft update target actor network from the actor network
+    actor.update_target_model(actor)
 '''
