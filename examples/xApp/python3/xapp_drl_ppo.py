@@ -2,9 +2,12 @@ import xapp_sdk as ric
 import time
 import threading
 from aggr_data import AggrData
-from ddpg import DDPG
 import numpy as np
 import csv
+
+import time
+from datetime import datetime
+from PPO import PPO
 
 #############################################
 ###  TODO
@@ -40,7 +43,7 @@ global_lock = threading.Lock()
 #actor_hidden_units=(256, 256)
 #critic_hidden_units=(256, 256)
 ppo_agent = PPO(state_dim=6, action_dim=1, lr_actor=0.0003, lr_critic=0.001,
-                    gamma=0.99, K_epochs=80, eps_clip=0.2,
+                    gamma=0.99, K_epochs=10, eps_clip=0.2,
                     has_continuous_action_space=True)
 
 
@@ -109,7 +112,7 @@ class MACCallback(ric.mac_cb):
 
             # Add the new BLER and energy data to the AggrData object
             #with global_lock:
-            if (self.ind_num is not 0):
+            if (self.ind_num != 0):
                 global_ue_aggr_data.add_bler(ue_stats.ul_bler, ind.tstamp)
                 global_ue_aggr_data.add_energy(ue_stats.dl_bler, ind.tstamp)
             #print(ue_stats.ul_bler, ue_stats.dl_bler)
@@ -137,10 +140,12 @@ for conn_id in range(0, len(conn)):
 def send_action(action):
     msg = ric.mac_ctrl_msg_t()
     msg.action = 42
-    msg.offload = float(action[1])
+    msg.offload = float(action)
     
     # Call the C++ function, which should now receive the correctly populated array
     ric.control_mac_sm(conn[i].id, msg)
+    #time.sleep(0.01)
+
 '''
 # Reward function calculation (this is an example, modify as per your needs)
 def calculate_reward(current_bler, current_energy, previous_bler, previous_energy):
@@ -172,7 +177,7 @@ def calculate_reward_no_thresholds(current_bler, current_energy, alpha=1.0, beta
     return reward
 '''
 '''
-def calculate_reward_bler_threshold(current_bler, current_energy, bler_threshold, alpha=1.0, beta=1.0):
+def calculate_reward_bler_threshold(current_bler, current_energy, bler_threshold = 0.05, alpha=1.0, beta=1.0):
     """
     Reward function with a threshold for BLER and direct penalty for energy.
 
@@ -197,13 +202,13 @@ def calculate_reward_bler_threshold(current_bler, current_energy, bler_threshold
     
     return reward
 '''
-
+'''
 def calculate_reward(current_bler, current_energy, previous_bler, previous_energy):
     reward = - (np.log(1 + current_bler / (previous_bler + 1e-6)) + 
                 np.log(1 + current_energy / (previous_energy + 1e-6)))
     return reward
-
 '''
+
 def calculate_reward(current_bler, current_energy, bler_threshold=0.05, penalty_factor=100):
     # Penalty if BLER exceeds the threshold
     if current_bler > bler_threshold:
@@ -221,7 +226,7 @@ def calculate_reward(current_bler, current_energy, bler_threshold=0.05, penalty_
     reward = bler_term - penalty + energy_term
 
     return reward
-'''
+
 
 #################################
 #### DRL main method
@@ -248,21 +253,21 @@ def run_drl(stop_event):
     """
     state_normalizer = StateNormalizer()
     has_continuous_action_space = True
-    max_ep_len = 200  # or any length you prefer
-    update_timestep = max_ep_len * 4
+    max_ep_len = 25  # or any length you prefer
+    update_timestep = max_ep_len
     action_std_decay_rate = 0.05
     min_action_std = 0.1
-    action_std_decay_freq = 1000
-    log_freq = max_ep_len * 2
-    save_model_freq = 5000
+    action_std_decay_freq = 50
+    log_freq = max_ep_len
+    save_model_freq = 500
     
     # Logging and checkpointing setup
-    log_f_name = 'PPO_log.csv'
-    checkpoint_path = "PPO_checkpoint.pth"
+    log_f_name = '/home/nakaolab/ppo/PPO_log.csv'
+    checkpoint_path = "/home/nakaolab/ppo/PPO_checkpoint.pth"
 
     # Initialize logging
     log_f = open(log_f_name, "w+")
-    log_f.write('episode,timestep,reward\n')
+    log_f.write('episode,timestep,reward,latency\n')
 
     print_running_reward = 0
     print_running_episodes = 0
@@ -278,30 +283,31 @@ def run_drl(stop_event):
         current_energy = global_ue_aggr_data.get_energy_stats()
 
         current_state = state_normalizer.normalize_state(current_bler[0], current_bler[1], 
-                                                         current_bler[2], 
+                                                         current_bler[2], current_bler[3],
                                                          current_energy[0], current_energy[1], 
-                                                         current_energy[2])
+                                                         current_energy[2], current_energy[3])
 
         current_ep_reward = 0
         for t in range(1, max_ep_len + 1):
             # Select action using PPO policy
             action = ppo_agent.select_action(current_state)
-            print(f"Selected Action: {action}")
+            #print(f"Selected Action: {action}")
 
             # Send action to the environment (RAN) via control message
             send_action(action)
+            time.sleep(0.01)
 
             # Wait for environment feedback (new state and reward)
             next_bler = global_ue_aggr_data.get_bler_stats()
             next_energy = global_ue_aggr_data.get_energy_stats()
 
             next_state = state_normalizer.normalize_state(next_bler[0], next_bler[1], 
-                                                          next_bler[2], 
+                                                          next_bler[2], next_bler[3],
                                                           next_energy[0], next_energy[1], 
-                                                          next_energy[2])
+                                                          next_energy[2], next_energy[3])
 
             # Calculate reward (based on BLER and energy metrics)
-            reward = calculate_reward(next_bler[0], next_energy[0], current_bler[0], current_energy[0])
+            reward = calculate_reward(next_bler[0], next_energy[0])
 
             # Store the experience in PPO's buffer
             ppo_agent.buffer.rewards.append(reward)
@@ -312,8 +318,12 @@ def run_drl(stop_event):
             time_step += 1
 
             # Update PPO if it's time
+            update_latency = 0
             if time_step % update_timestep == 0:
+                time_start = time.time_ns() / 1000000.0
                 ppo_agent.update()
+                time_end = time.time_ns() / 1000000.0
+                update_latency = time_end - time_start
 
             # Decay action std for exploration (if using continuous actions)
             if has_continuous_action_space and time_step % action_std_decay_freq == 0:
@@ -321,17 +331,17 @@ def run_drl(stop_event):
 
             # Logging
             if time_step % log_freq == 0:
-                avg_reward = print_running_reward / print_running_episodes
-                log_f.write('{},{},{}\n'.format(i_episode, time_step, round(avg_reward, 4)))
+                avg_reward = print_running_reward / print_running_episodes if print_running_episodes > 0 else print_running_reward
+                log_f.write('{},{},{},{}\n'.format(i_episode, time_step, round(avg_reward, 4), update_latency))
                 log_f.flush()
 
                 print_running_reward = 0
                 print_running_episodes = 0
 
             # Save model checkpoint
-            if time_step % save_model_freq == 0:
-                ppo_agent.save(checkpoint_path)
-                print(f"Saved model checkpoint at timestep {time_step}")
+            #if time_step % save_model_freq == 0:
+                #ppo_agent.save(checkpoint_path)
+                #print(f"Saved model checkpoint at timestep {time_step}")
 
             # Stop if the environment indicates it's done
             if stop_event.is_set():

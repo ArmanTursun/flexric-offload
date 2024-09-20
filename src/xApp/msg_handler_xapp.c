@@ -294,7 +294,7 @@ sm_ind_data_t ind_sm_payload(ric_indication_t const* src)
   act_proc_ans_t rv = find_act_proc(&xapp->act_proc, ack->ric_id.ric_req_id);
   assert(rv.ok == true && "ric_req_id not registered in the registry");
 
-  //printf("[xApp]: CONTROL ACK rx\n");
+  printf("[xApp]: CONTROL ACK rx\n");
 
   // A pending event is created along with a timer of 5000 ms,
   // after which an event will be generated
@@ -582,7 +582,7 @@ e2ap_msg_t e2ap_handle_e42_ric_control_request_xapp(e42_xapp_t* xapp, const e2ap
   byte_array_t ba_msg = e2ap_enc_e42_control_request_xapp(&xapp->ap,(  e42_ric_control_request_t* ) cr);
   defer({ free_byte_array(ba_msg) ;}; );
 
-  e2ap_send_bytes_xapp(&xapp->ep, ba_msg);
+  //e2ap_send_bytes_xapp(&xapp->ep, ba_msg);
 
   //printf("[xApp]: CONTROL-REQUEST tx \n");
 
@@ -590,6 +590,10 @@ e2ap_msg_t e2ap_handle_e42_ric_control_request_xapp(e42_xapp_t* xapp, const e2ap
     .id = cr->ctrl_req.ric_id,
     .wait_ms = 10000};
   add_pending_event_xapp(xapp, &ev);
+  
+  e2ap_send_bytes_xapp(&xapp->ep, ba_msg);
+
+  printf("[xApp]: CONTROL-REQUEST tx \n");
 
 
   e2ap_msg_t ans = {.type = NONE_E2_MSG_TYPE};

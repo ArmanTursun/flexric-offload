@@ -35,7 +35,7 @@ void fill_mac_ind_data(mac_ind_data_t* ind)
 
   mac_ind_msg_t* ind_msg = &ind->msg; 
   
-  int const NUM_UES = abs(rand()%5);
+  int const NUM_UES = 1;//abs(rand()%5);
 
   ind_msg->len_ue_stats = NUM_UES;
 
@@ -56,6 +56,8 @@ void fill_mac_ind_data(mac_ind_data_t* ind)
     ind_msg->ue_stats[i].ul_aggr_bytes_sdus = abs(rand()%mod);
     ind_msg->ue_stats[i].pusch_snr = 64.0; //: float = -64;
     ind_msg->ue_stats[i].pucch_snr = 64.0; //: float = -64;
+    ind_msg->ue_stats[i].ul_bler = 0.06; //: float = -64;
+    ind_msg->ue_stats[i].dl_bler = 22.0; //: float = -64;
     ind_msg->ue_stats[i].rnti = abs(rand()%mod);
     ind_msg->ue_stats[i].dl_aggr_prb = abs(rand()%mod);
     ind_msg->ue_stats[i].ul_aggr_prb = abs(rand()%mod);

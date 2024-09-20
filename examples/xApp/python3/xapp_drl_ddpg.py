@@ -29,19 +29,18 @@ global_ue_aggr_data = AggrData(10)
 global_lock = threading.Lock()
 
 # DDPG Parameters
-#state_dim = 6  # BLER and energy
-#action_dim = 2  # Weight for BLER and energy
-#actor_lr = 1e-5
-#critic_lr = 1e-5
-#gamma = 0.995
-#tau = 0.001
-#buffer_size = 10000
-#batch_size = 64
-#actor_hidden_units=(256, 256)
-#critic_hidden_units=(256, 256)
-ppo_agent = PPO(state_dim=6, action_dim=1, lr_actor=0.0003, lr_critic=0.001,
-                    gamma=0.99, K_epochs=80, eps_clip=0.2,
-                    has_continuous_action_space=True)
+state_dim = 6  # BLER and energy
+action_dim = 2  # Weight for BLER and energy
+actor_lr = 1e-5
+critic_lr = 1e-5
+gamma = 0.995
+tau = 0.001
+buffer_size = 10000
+batch_size = 64
+actor_hidden_units=(256, 256)
+critic_hidden_units=(256, 256)
+ddpg_agent = DDPG(state_size = state_dim, action_size = action_dim,actor_learning_rate=actor_lr, critic_learning_rate=critic_lr, 
+    batch_size=batch_size, discount=gamma, memory_size=buffer_size, tau=tau)
 
 
 class StateNormalizer:
@@ -148,7 +147,7 @@ def calculate_reward(current_bler, current_energy, previous_bler, previous_energ
                 np.log(1 + current_energy / (previous_energy + 1e-6)))
     return reward
 '''
-'''
+
 def calculate_reward_no_thresholds(current_bler, current_energy, alpha=1.0, beta=1.0):
     """
     Reward function that penalizes BLER and energy directly, without thresholds.
@@ -170,8 +169,7 @@ def calculate_reward_no_thresholds(current_bler, current_energy, alpha=1.0, beta
     reward = -(alpha * bler_penalty + beta * energy_penalty)
     
     return reward
-'''
-'''
+
 def calculate_reward_bler_threshold(current_bler, current_energy, bler_threshold, alpha=1.0, beta=1.0):
     """
     Reward function with a threshold for BLER and direct penalty for energy.
@@ -196,12 +194,12 @@ def calculate_reward_bler_threshold(current_bler, current_energy, bler_threshold
     reward = -(alpha * bler_penalty + beta * energy_penalty)
     
     return reward
-'''
 
-def calculate_reward(current_bler, current_energy, previous_bler, previous_energy):
-    reward = - (np.log(1 + current_bler / (previous_bler + 1e-6)) + 
-                np.log(1 + current_energy / (previous_energy + 1e-6)))
-    return reward
+
+#def calculate_reward(current_bler, current_energy, previous_bler, previous_energy):
+    #reward = - (np.log(1 + current_bler / (previous_bler + 1e-6)) + 
+    #            np.log(1 + current_energy / (previous_energy + 1e-6)))
+    #return reward
 
 '''
 def calculate_reward(current_bler, current_energy, bler_threshold=0.05, penalty_factor=100):
@@ -238,7 +236,7 @@ def write_memory_to_csv(current_state, action, reward, done, next_state, time_no
         writer = csv.writer(file)
         writer.writerow([action, reward, done, time_now])
 
-def run_drl(stop_event):
+def run_drl(stop_event, num_epochs=10, max_steps_per_epoch=300, warmup_steps=10):
     """
     Run the DDPG training for a specified number of epochs.
     
@@ -247,104 +245,102 @@ def run_drl(stop_event):
     :param max_steps_per_epoch: max steps per epoch
     """
     state_normalizer = StateNormalizer()
-    has_continuous_action_space = True
-    max_ep_len = 200  # or any length you prefer
-    update_timestep = max_ep_len * 4
-    action_std_decay_rate = 0.05
-    min_action_std = 0.1
-    action_std_decay_freq = 1000
-    log_freq = max_ep_len * 2
-    save_model_freq = 5000
-    
-    # Logging and checkpointing setup
-    log_f_name = 'PPO_log.csv'
-    checkpoint_path = "PPO_checkpoint.pth"
+    current_bler = None
+    current_energy = None
+    current_state = None
 
-    # Initialize logging
-    log_f = open(log_f_name, "w+")
-    log_f.write('episode,timestep,reward\n')
+    for epoch in range(num_epochs):
+        print(f"Epoch {epoch + 1}/{num_epochs}")
 
-    print_running_reward = 0
-    print_running_episodes = 0
-    time_step = 0
-    i_episode = 0
+        while True:
+            #with global_lock:
+                # Retrieve the current aggregated state from the environment (RAN)
+            current_bler = global_ue_aggr_data.get_bler_stats()
+            current_energy = global_ue_aggr_data.get_energy_stats()
 
-    start_time = time.time()
+            # Normalize the initial state
+            current_state = state_normalizer.normalize_state(current_bler[0], current_bler[1],
+                                        current_bler[2], current_bler[3],
+                                        current_energy[0], current_energy[1],
+                                        current_energy[2], current_energy[3])
+            if np.isnan(current_bler).any() or np.isinf(current_bler).any() or np.isnan(current_energy).any() or np.isinf(current_energy).any():
+                continue
+            else:
+                break
+            
+        # Reset noise and initial states at the beginning of each epoch
+        ddpg_agent.reset_noise()
+        total_reward = 0
 
-    ################### Start training loop ###################
-    while not stop_event.is_set():
-        # Initial state from the environment (e.g., BLER and Energy)
-        current_bler = global_ue_aggr_data.get_bler_stats()
-        current_energy = global_ue_aggr_data.get_energy_stats()
+        #time_last = time.time_ns() / 1000000.0
 
-        current_state = state_normalizer.normalize_state(current_bler[0], current_bler[1], 
-                                                         current_bler[2], 
-                                                         current_energy[0], current_energy[1], 
-                                                         current_energy[2])
+        # Run the steps for each epoch
+        for step in range(max_steps_per_epoch):
+            #if step < warmup_steps:
+                #print(f"Warm-up step {step + 1}/{warmup_steps}, skipping training...")
+                
+                #continue  # Skip training until valid states are generated
 
-        current_ep_reward = 0
-        for t in range(1, max_ep_len + 1):
-            # Select action using PPO policy
-            action = ppo_agent.select_action(current_state)
-            print(f"Selected Action: {action}")
+            # Generate action using DDPG agent
+            
+            action = ddpg_agent.get_action(current_state)
+            #print("Actions:", action)
 
-            # Send action to the environment (RAN) via control message
+            # Send the action to the RAN via control message
+            time_now = time.time_ns() / 1000000.0
+            #print(time_now)
+            #if (time_now - time_last > 100):
             send_action(action)
+                #time_last = time_now
 
-            # Wait for environment feedback (new state and reward)
+            #with global_lock:
+                # Get the next state after applying the action
             next_bler = global_ue_aggr_data.get_bler_stats()
             next_energy = global_ue_aggr_data.get_energy_stats()
 
-            next_state = state_normalizer.normalize_state(next_bler[0], next_bler[1], 
-                                                          next_bler[2], 
-                                                          next_energy[0], next_energy[1], 
-                                                          next_energy[2])
+            # Normalize the next state
+            next_state = state_normalizer.normalize_state(next_bler[0], next_bler[1],
+                                                          next_bler[2], next_bler[3],
+                                                          next_energy[0], next_energy[1],
+                                                          next_energy[2], next_energy[3])
 
-            # Calculate reward (based on BLER and energy metrics)
-            reward = calculate_reward(next_bler[0], next_energy[0], current_bler[0], current_energy[0])
+            # Calculate reward based on the transition (current_state -> next_state)
+            #reward = calculate_reward(next_bler[0], next_energy[0], current_bler[0], current_energy[0])
+            reward = calculate_reward_bler_threshold(next_bler[0], next_energy[0], 0.05, 1.0, 1.0)
+            #write_reward_to_csv(reward, time_now, file_name_reward)
+            # Check if episode is done (you can define your own condition here)
+            # E.g., if BLER or energy hits some threshold, we can terminate the episode.
+            done = (step == max_steps_per_epoch - 1)# or (reward > some_reward_threshold)
 
-            # Store the experience in PPO's buffer
-            ppo_agent.buffer.rewards.append(reward)
-            ppo_agent.buffer.is_terminals.append(False)  # Modify this logic if needed
+            # Remember the transition in the DDPG agent's memory
+            # print(current_state, action, reward, done, next_state)
+            ddpg_agent.remember(current_state, action, reward, done, next_state)
+            write_memory_to_csv(current_state, action, reward, done, next_state, time_now, file_name_memory)
 
+            # Train the DDPG agent with a batch of experiences
+            ddpg_agent.train()
+
+            # Update the previous state for the next iteration
             current_state = next_state
-            current_ep_reward += reward
-            time_step += 1
+            current_bler = next_bler
+            current_energy = next_energy
 
-            # Update PPO if it's time
-            if time_step % update_timestep == 0:
-                ppo_agent.update()
+            # Update the total reward
+            total_reward += reward
 
-            # Decay action std for exploration (if using continuous actions)
-            if has_continuous_action_space and time_step % action_std_decay_freq == 0:
-                ppo_agent.decay_action_std(action_std_decay_rate, min_action_std)
-
-            # Logging
-            if time_step % log_freq == 0:
-                avg_reward = print_running_reward / print_running_episodes
-                log_f.write('{},{},{}\n'.format(i_episode, time_step, round(avg_reward, 4)))
-                log_f.flush()
-
-                print_running_reward = 0
-                print_running_episodes = 0
-
-            # Save model checkpoint
-            if time_step % save_model_freq == 0:
-                ppo_agent.save(checkpoint_path)
-                print(f"Saved model checkpoint at timestep {time_step}")
-
-            # Stop if the environment indicates it's done
-            if stop_event.is_set():
+            # If the episode is done, break the step loop and start a new epoch
+            if done:
+                #print(f"Episode done at step {step + 1} with total reward: {total_reward:.5f}")
                 break
 
-        print_running_reward += current_ep_reward
-        print_running_episodes += 1
-        i_episode += 1
+            # Update the actor and critic loss monitoring
+            actor_loss = ddpg_agent.actor_loss
+            critic_loss = ddpg_agent.critic_loss
+            # print(f"Step {step + 1} - Actor Loss: {actor_loss:.5f}, Critic Loss: {critic_loss:.5f}")
 
-    log_f.close()
-
-    end_time = time.time()
-    print(f"Total training time: {end_time - start_time} seconds")
+        print(f"Epoch {epoch + 1} finished with total reward: {total_reward:.5f}\n")
+        if stop_event.is_set():
+            break
 
 
 
