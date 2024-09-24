@@ -1,19 +1,13 @@
+import xapp_sdk as ric
 import time
 import threading
 from aggr_data import AggrData
 import numpy as np
 import csv
-import os
+
 import time
-import sys
 from datetime import datetime
 from PPO import PPO
-
-cur_dir = os.path.dirname(os.path.abspath(__file__))
-# print("Current Directory:", cur_dir)
-sdk_path = cur_dir + "/../xapp_sdk/"
-sys.path.append(sdk_path)
-import xapp_sdk as ric
 
 #############################################
 ###  TODO
@@ -32,18 +26,22 @@ import xapp_sdk as ric
 
 # Global dictionary to store bler and energy data
 # It keeps an window of 1000 of most recent data
-global_ue_aggr_data = AggrData(1)
+global_ue_aggr_data = AggrData(10)
 
 # Global lock to ensure thread-safe access to the global dictionary
 global_lock = threading.Lock()
 
-node_idx = 0
-
-offload_control = {
-    'send' : False,
-    'action' : 0.0
-}
-
+# DDPG Parameters
+#state_dim = 6  # BLER and energy
+#action_dim = 2  # Weight for BLER and energy
+#actor_lr = 1e-5
+#critic_lr = 1e-5
+#gamma = 0.995
+#tau = 0.001
+#buffer_size = 10000
+#batch_size = 64
+#actor_hidden_units=(256, 256)
+#critic_hidden_units=(256, 256)
 ppo_agent = PPO(state_dim=6, action_dim=1, lr_actor=0.0003, lr_critic=0.001,
                     gamma=0.99, K_epochs=10, eps_clip=0.2,
                     has_continuous_action_space=True)
@@ -86,52 +84,14 @@ class StateNormalizer:
         self.update_energy(energy_mean, energy_max, energy_min)
 
         # Normalize energy stats
-        #normalized_energy_mean = self.normalize_energy(energy_mean)
-        #normalized_energy_max = self.normalize_energy(energy_max)
-        #normalized_energy_min = self.normalize_energy(energy_min)
-        #normalized_energy_skewness = self.normalize_energy_skewness(energy_skewness)
-        normalized_energy_mean = energy_mean
-        normalized_energy_max = energy_max
-        normalized_energy_min = energy_min
-        normalized_energy_skewness = energy_skewness
+        normalized_energy_mean = self.normalize_energy(energy_mean)
+        normalized_energy_max = self.normalize_energy(energy_max)
+        normalized_energy_min = self.normalize_energy(energy_min)
+        normalized_energy_skewness = self.normalize_energy_skewness(energy_skewness)
 
         # Return the normalized state
         return np.array([normalized_bler_mean, normalized_bler_max, normalized_bler_min, #normalized_bler_skewness,
                          normalized_energy_mean, normalized_energy_max, normalized_energy_min])#, normalized_energy_skewness])
-
-
-# Function to generate action and send control message
-def send_action(action):    
-    ric.control_mac_sm(conn[node_idx].id, float(action[0]))
-
-
-def get_cust_tti(tti):
-    if tti == "1_ms":
-        return ric.Interval_ms_1
-    elif tti == "2_ms":
-        return ric.Interval_ms_2
-    elif tti == "5_ms":
-        return ric.Interval_ms_5
-    elif tti == "10_ms":
-        return ric.Interval_ms_10
-    elif tti == "100_ms":
-        return ric.Interval_ms_100
-    elif tti == "1000_ms":
-        return ric.Interval_ms_1000
-    else:
-        print(f"Unknown tti {tti}")
-        exit()
-
-#sm_name = None
-#sm_time = None
-#tti = None
-#cust_sm = ric.get_cust_sm_conf()
-
-#for sm_info in cust_sm:
-#    sm_name = sm_info.name
-#    sm_time = sm_info.time
-#    tti = get_cust_tti(sm_time)
-#    print('sm: ' + sm_name + ', interval: ' + tti)
 
 
 ##################################################
@@ -156,34 +116,35 @@ class MACCallback(ric.mac_cb):
                 global_ue_aggr_data.add_bler(ue_stats.ul_bler, ind.tstamp)
                 global_ue_aggr_data.add_energy(ue_stats.dl_bler, ind.tstamp)
             #print(ue_stats.ul_bler, ue_stats.dl_bler)
-            self.ind_num += 1
-            if (offload_control['send']):
-                #send_action(offload_control['action'])
-                #ric.control_mac_sm(conn[node_idx].id, offload_control['action'])
-                msg = ric.mac_ctrl_msg_t()
-                msg.action = 42
-                msg.offload = float(offload_control['action'])
-                ric.control_mac_sm(conn[node_idx].id, msg)
-                offload_control['send'] = False
+            self.ind_num = 1
 
-#mac_cb = MACCallback()
+            
+####################
+####  init RIC
+####################
 
-def get_state(tti, mac_cb, state_normalizer):
-    hndlr = ric.report_mac_sm(conn[i].id, tti, mac_cb)
-    time.sleep(0.01)
-    ric.rm_report_mac_sm(hndlr)
-    current_bler = global_ue_aggr_data.get_bler_stats()
-    current_energy = global_ue_aggr_data.get_energy_stats()
-
-    current_state = state_normalizer.normalize_state(current_bler[0], current_bler[1], 
-                                                     current_bler[2], current_bler[3],
-                                                     current_energy[0], current_energy[1], 
-                                                     current_energy[2], current_energy[3])
-    return current_bler, current_energy, current_state
+ric.init()
+time.sleep(1)
+conn_id = 0
+conn = ric.conn_e2_nodes()
+assert(len(conn) > 0)
+for conn_id in range(0, len(conn)):
+    print("Global E2 Node [" + str(conn_id) + "]: PLMN MCC = " + str(conn[conn_id].id.plmn.mcc))
+    print("Global E2 Node [" + str(conn_id) + "]: PLMN MNC = " + str(conn[conn_id].id.plmn.mnc))
 
 ##################################################
 #### DRL functions
 ##################################################
+
+# Function to generate action and send control message
+def send_action(action):
+    msg = ric.mac_ctrl_msg_t()
+    msg.action = 42
+    msg.offload = float(action)
+    
+    # Call the C++ function, which should now receive the correctly populated array
+    ric.control_mac_sm(conn[i].id, msg)
+    #time.sleep(0.01)
 
 '''
 # Reward function calculation (this is an example, modify as per your needs)
@@ -283,9 +244,13 @@ def write_memory_to_csv(current_state, action, reward, done, next_state, time_no
         writer.writerow([action, reward, done, time_now])
 
 def run_drl(stop_event):
-#def run_drl(ppo_agent, tti, mac_cb):
-#def run_drl():
-
+    """
+    Run the DDPG training for a specified number of epochs.
+    
+    :param stop_event: threading event to stop the training
+    :param num_epochs: number of training epochs
+    :param max_steps_per_epoch: max steps per epoch
+    """
     state_normalizer = StateNormalizer()
     has_continuous_action_space = True
     max_ep_len = 25  # or any length you prefer
@@ -312,7 +277,6 @@ def run_drl(stop_event):
     start_time = time.time()
 
     ################### Start training loop ###################
-    #while True:
     while not stop_event.is_set():
         # Initial state from the environment (e.g., BLER and Energy)
         current_bler = global_ue_aggr_data.get_bler_stats()
@@ -323,18 +287,14 @@ def run_drl(stop_event):
                                                          current_energy[0], current_energy[1], 
                                                          current_energy[2], current_energy[3])
 
-        #current_bler, current_energy, current_state = get_state(tti, mac_cb, state_normalizer)
         current_ep_reward = 0
         for t in range(1, max_ep_len + 1):
             # Select action using PPO policy
             action = ppo_agent.select_action(current_state)
             #print(f"Selected Action: {action}")
-            
-            offload_control['action'] = float(action[0])
-            offload_control['send'] = True
 
             # Send action to the environment (RAN) via control message
-            #send_action(action)
+            send_action(action)
             time.sleep(0.01)
 
             # Wait for environment feedback (new state and reward)
@@ -346,7 +306,6 @@ def run_drl(stop_event):
                                                           next_energy[0], next_energy[1], 
                                                           next_energy[2], next_energy[3])
 
-            #next_bler, next_energy, next_state = get_state(tti, mac_cb, state_normalizer)
             # Calculate reward (based on BLER and energy metrics)
             reward = calculate_reward(next_bler[0], next_energy[0])
 
@@ -397,77 +356,47 @@ def run_drl(stop_event):
     end_time = time.time()
     print(f"Total training time: {end_time - start_time} seconds")
 
+
+
 ##############################
 #### MAC IND&CTRL with DRL
 ##############################
-
-def run_mac_report(stop_event, hndlr, mac_cb, conn, tti):
-    #hndlr = ric.report_mac_sm(conn[i].id, tti, mac_cb)
-    while not stop_event.is_set():
-        time.sleep(1000)
-
-if __name__ == '__main__':
-    # Start
-    ric.init()
-    #cust_sm = ric.get_cust_sm_conf()
-    conn = ric.conn_e2_nodes()
-    assert(len(conn) > 0)
-    for i in range(0, len(conn)):
-        print("Global E2 Node [" + str(i) + "]: PLMN MCC = " + str(conn[i].id.plmn.mcc))
-        print("Global E2 Node [" + str(i) + "]: PLMN MNC = " + str(conn[i].id.plmn.mnc))
-    
+mac_hndlr = []
+for i in range(0, len(conn)):
     mac_cb = MACCallback()
     hndlr = ric.report_mac_sm(conn[i].id, ric.Interval_ms_1, mac_cb)
+    mac_hndlr.append(hndlr)
     time.sleep(1)
-    #for sm_info in cust_sm:
-        #sm_name = sm_info.name
-        #sm_time = sm_info.time
-        #tti = get_cust_tti(sm_time)
 
-        #if sm_name == "MAC":
-            #for i in range(0, len(conn)):
-                # MAC
-                #mac_cb = MACCallback()
-                #hndlr = ric.report_mac_sm(conn[i].id, tti, mac_cb)
-                #time.sleep(1)
-                #stop_event = threading.Event()
-                #mac_thread = threading.Thread(target=run_mac_report, args=(stop_event, hndlr, mac_cb, conn, tti, ))
-                #mac_thread.daemon = True
-                #mac_thread.start()
+try:
+    # Create a stop event for the drl thread
+    stop_event = threading.Event()
 
-    try:
-        # Create a stop event for the drl thread
-        stop_event = threading.Event()
+    # Start the drl thread using the global dictionary
+    drl_thread = threading.Thread(target=run_drl, args=(stop_event,))
+    drl_thread.daemon = True  # Ensures the thread exits when the main program exits
+    drl_thread.start()
 
-        # Start the drl thread using the global dictionary
-        drl_thread = threading.Thread(target=run_drl, args=(stop_event,))
-        drl_thread.daemon = True  # Ensures the thread exits when the main program exits
-        drl_thread.start()
-        # Simulate main program running for a long time or until Ctrl+C is pressed
-        time.sleep(1000)
-        #ppo_agent = PPO(state_dim=6, action_dim=1, lr_actor=0.0003, lr_critic=0.001,
-        #            gamma=0.99, K_epochs=10, eps_clip=0.2,
-        #            has_continuous_action_space=True)
-        #run_drl(ppo_agent, tti, mac_cb)
-        #run_drl()
-        #pass
+    # Simulate main program running for a long time or until Ctrl+C is pressed
+    time.sleep(1000)
 
-    
-    except KeyboardInterrupt:
-        print("Stopping drl and cleaning up...")
+except KeyboardInterrupt:
+    print("Stopping drl and cleaning up...")
 
-        # Set the stop event to stop the drl thread
-        stop_event.set()
+    # Set the stop event to stop the drl thread
+    stop_event.set()
 
-        # Wait for the drl thread to finish
-        drl_thread.join()
-        #mac_thread.join()
+    # Wait for the drl thread to finish
+    drl_thread.join()
 
-        ric.rm_report_mac_sm(hndlr)
+    for i in range(0, len(mac_hndlr)):
+        ric.rm_report_mac_sm(mac_hndlr[i])
 
-        # Avoid deadlock. ToDo revise architecture 
-        while ric.try_stop == 0:
-            time.sleep(1)
+    # Avoid deadlock. ToDo revise architecture 
+    while ric.try_stop == 0:
+        time.sleep(1)
 
-        print("Test finished")
+    print("Test finished")
+
+
 
