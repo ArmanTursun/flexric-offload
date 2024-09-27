@@ -32,10 +32,11 @@ import xapp_sdk as ric
 
 # Global dictionary to store bler and energy data
 # It keeps an window of 1000 of most recent data
-global_ue_aggr_data = AggrData(1)
+global_ue_aggr_data = AggrData(10)
 
 # Global lock to ensure thread-safe access to the global dictionary
-global_lock = threading.Lock()
+global_lock_data = threading.Lock()
+global_lock_offload = threading.Lock()
 
 node_idx = 0
 
@@ -151,10 +152,10 @@ class MACCallback(ric.mac_cb):
             ue_stats = ind.ue_stats[0]
 
             # Add the new BLER and energy data to the AggrData object
-            #with global_lock:
-            if (self.ind_num != 0):
-                global_ue_aggr_data.add_bler(ue_stats.ul_bler, ind.tstamp)
-                global_ue_aggr_data.add_energy(ue_stats.dl_bler, ind.tstamp)
+            with global_lock_data:
+                if (self.ind_num != 0):
+                    global_ue_aggr_data.add_bler(ue_stats.ul_bler, ind.tstamp)
+                    global_ue_aggr_data.add_energy(ue_stats.dl_bler, ind.tstamp)
             #print(ue_stats.ul_bler, ue_stats.dl_bler)
             self.ind_num += 1
             if (offload_control['send']):
@@ -162,9 +163,10 @@ class MACCallback(ric.mac_cb):
                 #ric.control_mac_sm(conn[node_idx].id, offload_control['action'])
                 msg = ric.mac_ctrl_msg_t()
                 msg.action = 42
-                msg.offload = float(offload_control['action'])
-                ric.control_mac_sm(conn[node_idx].id, msg)
-                offload_control['send'] = False
+                with global_lock_offload:
+                    msg.offload = float(offload_control['action'])
+                    ric.control_mac_sm(conn[node_idx].id, msg)
+                    offload_control['send'] = False
 
 #mac_cb = MACCallback()
 
@@ -185,13 +187,21 @@ def get_state(tti, mac_cb, state_normalizer):
 #### DRL functions
 ##################################################
 
-'''
+
 # Reward function calculation (this is an example, modify as per your needs)
 def calculate_reward(current_bler, current_energy, previous_bler, previous_energy):
-    reward = - (np.log(1 + current_bler / (previous_bler + 1e-6)) + 
-                np.log(1 + current_energy / (previous_energy + 1e-6)))
+    #reward = - (np.log(1 + current_bler / (previous_bler + 1e-6)) + 
+                #np.log(1 + current_energy / (previous_energy + 1e-6)))
+    penalty_factor = 10000
+    bler_threshold = 0.05
+    if current_bler > bler_threshold:
+        penalty = penalty_factor * (current_bler - bler_threshold)
+    else:
+        penalty = 0  # No penalty if BLER is below the threshold
+    reward = - (np.log(1 + current_bler + penalty) + 
+                np.log(1 + current_energy))
     return reward
-'''
+
 '''
 def calculate_reward_no_thresholds(current_bler, current_energy, alpha=1.0, beta=1.0):
     """
@@ -247,7 +257,7 @@ def calculate_reward(current_bler, current_energy, previous_bler, previous_energ
                 np.log(1 + current_energy / (previous_energy + 1e-6)))
     return reward
 '''
-
+'''
 def calculate_reward(current_bler, current_energy, bler_threshold=0.05, penalty_factor=100):
     # Penalty if BLER exceeds the threshold
     if current_bler > bler_threshold:
@@ -265,7 +275,7 @@ def calculate_reward(current_bler, current_energy, bler_threshold=0.05, penalty_
     reward = bler_term - penalty + energy_term
 
     return reward
-
+'''
 
 #################################
 #### DRL main method
@@ -288,7 +298,7 @@ def run_drl(stop_event):
 
     state_normalizer = StateNormalizer()
     has_continuous_action_space = True
-    max_ep_len = 25  # or any length you prefer
+    max_ep_len = 50  # or any length you prefer
     update_timestep = max_ep_len
     action_std_decay_rate = 0.05
     min_action_std = 0.1
@@ -301,22 +311,23 @@ def run_drl(stop_event):
     checkpoint_path = "/home/nakaolab/ppo/PPO_checkpoint.pth"
 
     # Initialize logging
-    log_f = open(log_f_name, "w+")
-    log_f.write('episode,timestep,reward,latency\n')
+    log_f = open(log_f_name, "a+")
+    #log_f.write('episode,timestep,reward,latency,time\n')
 
     print_running_reward = 0
     print_running_episodes = 0
     time_step = 0
     i_episode = 0
 
-    start_time = time.time()
+    start_time = time.time_ns() / 1000000.0
 
     ################### Start training loop ###################
     #while True:
     while not stop_event.is_set():
         # Initial state from the environment (e.g., BLER and Energy)
-        current_bler = global_ue_aggr_data.get_bler_stats()
-        current_energy = global_ue_aggr_data.get_energy_stats()
+        with global_lock_data:
+            current_bler = global_ue_aggr_data.get_bler_stats()
+            current_energy = global_ue_aggr_data.get_energy_stats()
 
         current_state = state_normalizer.normalize_state(current_bler[0], current_bler[1], 
                                                          current_bler[2], current_bler[3],
@@ -330,16 +341,18 @@ def run_drl(stop_event):
             action = ppo_agent.select_action(current_state)
             #print(f"Selected Action: {action}")
             
-            offload_control['action'] = float(action[0])
-            offload_control['send'] = True
+            with global_lock_offload:
+                offload_control['action'] = float(action[0])
+                offload_control['send'] = True
 
             # Send action to the environment (RAN) via control message
             #send_action(action)
             time.sleep(0.01)
 
             # Wait for environment feedback (new state and reward)
-            next_bler = global_ue_aggr_data.get_bler_stats()
-            next_energy = global_ue_aggr_data.get_energy_stats()
+            with global_lock_data:
+                next_bler = global_ue_aggr_data.get_bler_stats()
+                next_energy = global_ue_aggr_data.get_energy_stats()
 
             next_state = state_normalizer.normalize_state(next_bler[0], next_bler[1], 
                                                           next_bler[2], next_bler[3],
@@ -348,7 +361,8 @@ def run_drl(stop_event):
 
             #next_bler, next_energy, next_state = get_state(tti, mac_cb, state_normalizer)
             # Calculate reward (based on BLER and energy metrics)
-            reward = calculate_reward(next_bler[0], next_energy[0])
+            #reward = calculate_reward(next_bler[0], next_energy[0])
+            reward = calculate_reward(next_bler[0], next_energy[0], current_bler[0], current_energy[0])
 
             # Store the experience in PPO's buffer
             ppo_agent.buffer.rewards.append(reward)
@@ -373,7 +387,7 @@ def run_drl(stop_event):
             # Logging
             if time_step % log_freq == 0:
                 avg_reward = print_running_reward / print_running_episodes if print_running_episodes > 0 else print_running_reward
-                log_f.write('{},{},{},{}\n'.format(i_episode, time_step, round(avg_reward, 4), update_latency))
+                log_f.write('{},{},{},{},{}\n'.format(i_episode, time_step, round(avg_reward, 4), update_latency, time.time_ns() / 1000000.0 - start_time))
                 log_f.flush()
 
                 print_running_reward = 0
@@ -394,8 +408,8 @@ def run_drl(stop_event):
 
     log_f.close()
 
-    end_time = time.time()
-    print(f"Total training time: {end_time - start_time} seconds")
+    end_time = time.time_ns() / 1000000.0
+    print(f"Total training time: {end_time - start_time} milli-seconds")
 
 ##############################
 #### MAC IND&CTRL with DRL

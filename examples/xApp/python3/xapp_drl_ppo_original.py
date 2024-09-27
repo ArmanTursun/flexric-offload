@@ -11,13 +11,8 @@ from PPO import PPO
 
 #############################################
 ###  TODO
-###  1. stats are {} -> np          -> done
-###  2. ric ctril handle stats      -> done
-###  3. reward function             -> done
-###  4. ddpg for states             -> done
-###  5. check actor and critic      -> done
-###  6. make sure drl can run       -> done
-###  7. run with real ran
+###  1. confirm with OAI
+###  2. fine-tune ppo
 #############################################
 
 #############################
