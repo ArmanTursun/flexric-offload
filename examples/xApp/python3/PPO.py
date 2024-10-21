@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.distributions import MultivariateNormal
 from torch.distributions import Categorical
+import time
 
 ################################## set device ##################################
 print("============================================================================================")
@@ -117,7 +118,7 @@ class ActorCritic(nn.Module):
 
 
 class PPO:
-    def __init__(self, state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip, has_continuous_action_space, action_std_init=0.6):
+    def __init__(self, state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip, has_continuous_action_space, action_std_init=0.5):
 
         self.has_continuous_action_space = has_continuous_action_space
 
@@ -158,9 +159,9 @@ class PPO:
             self.action_std = round(self.action_std, 4)
             if (self.action_std <= min_action_std):
                 self.action_std = min_action_std
-                print("setting actor output action_std to min_action_std : ", self.action_std)
+                print("setting actor output action_std to min_action_std : ", self.action_std, '  ', time.time())
             else:
-                print("setting actor output action_std to : ", self.action_std)
+                print("setting actor output action_std to : ", self.action_std, '  ', time.time())
             self.set_action_std(self.action_std)
 
         else:

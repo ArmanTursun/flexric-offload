@@ -132,7 +132,8 @@ sm_ctrl_out_data_t on_control_mac_sm_ag(sm_agent_t const* sm_agent, sm_ctrl_req_
   defer({ free_mac_ctrl_hdr(&mac_ctrl.hdr ); });
   mac_ctrl.msg.action = msg.action;
   defer({ free_mac_ctrl_msg(&mac_ctrl.msg ); });
-  mac_ctrl.msg.offload = msg.offload;
+  mac_ctrl.msg.mcs = msg.mcs;
+  mac_ctrl.msg.prb = msg.prb;
 
   sm_ag_if_ans_t ans = sm->base.io.write_ctrl(&mac_ctrl);
   assert(ans.type == CTRL_OUTCOME_SM_AG_IF_ANS_V0);
