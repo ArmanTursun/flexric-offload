@@ -118,38 +118,30 @@ sm_ctrl_out_data_t on_control_mac_sm_ag(sm_agent_t const* sm_agent, sm_ctrl_req_
   assert(data != NULL);
   sm_mac_agent_t* sm = (sm_mac_agent_t*) sm_agent;
 
-  mac_ctrl_hdr_t hdr = mac_dec_ctrl_hdr(&sm->enc, data->len_hdr, data->ctrl_hdr);
-  assert(hdr.dummy == 1 && "Only dummy == 1 supported ");
+  mac_ctrl_req_data_t ctrl = {0};
+  ctrl.hdr = mac_dec_ctrl_hdr(&sm->enc, data->len_hdr, data->ctrl_hdr);
+  defer({ free_mac_ctrl_hdr(&ctrl.hdr); });
 
-  mac_ctrl_msg_t msg = mac_dec_ctrl_msg(&sm->enc, data->len_msg, data->ctrl_msg);
-  assert(msg.action == 42 && "Only action number 42 supported");
+  ctrl.msg = mac_dec_ctrl_msg(&sm->enc, data->len_msg, data->ctrl_msg);
+  defer({ free_mac_ctrl_msg(&ctrl.msg); });
 
 //  sm_ag_if_wr_t wr = {.type = CONTROL_SM_AG_IF_WR };
-//  wr.ctrl.type = MAC_CTRL_REQ_V0; 
+//  wr.ctrl.type = MAC_CTRL_REQ_V0;
 
-  mac_ctrl_req_data_t mac_ctrl = {0};
-  mac_ctrl.hdr.dummy = hdr.dummy;
-  defer({ free_mac_ctrl_hdr(&mac_ctrl.hdr ); });
-  mac_ctrl.msg.action = msg.action;
-  defer({ free_mac_ctrl_msg(&mac_ctrl.msg ); });
-  mac_ctrl.msg.mcs = msg.mcs;
-  mac_ctrl.msg.prb = msg.prb;
-
-  sm_ag_if_ans_t ans = sm->base.io.write_ctrl(&mac_ctrl);
+  sm_ag_if_ans_t ans = sm->base.io.write_ctrl(&ctrl);
   assert(ans.type == CTRL_OUTCOME_SM_AG_IF_ANS_V0);
   assert(ans.ctrl_out.type == MAC_AGENT_IF_CTRL_ANS_V0);
- 
 
   defer({free_mac_ctrl_out(&ans.ctrl_out.mac); });
 
+  byte_array_t ba = mac_enc_ctrl_out(&sm->enc, &ans.ctrl_out.mac);
+
   sm_ctrl_out_data_t ret = {0};
-  //ret.len_out = 0;
-  //ret.ctrl_out = NULL;
+  ret.len_out = ba.len;
+  ret.ctrl_out = ba.buf;
 
   //printf("on_control called \n");
   return ret;
-
-  
 }
 
 static

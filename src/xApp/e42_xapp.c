@@ -499,6 +499,7 @@ void send_control_request(e42_xapp_t* xapp, global_e2_node_id_t* id, ric_gen_id_
 
   sm_ric_t* sm = sm_plugin_ric(&xapp->plugin_ric, ric_req.ran_func_id);
   
+  
   ric_control_request_t ctrl_req = generate_ric_control_request(ric_req, sm, ctrl_msg);
 
   e42_ric_control_request_t e42_cr = { .xapp_id = xapp->id,
@@ -524,7 +525,8 @@ sm_ans_xapp_t control_sm_sync_xapp(e42_xapp_t* xapp, global_e2_node_id_t* id, ui
 
   // Generate and registry the ric_req_id
   ric_gen_id_t ric_id = generate_ric_gen_id(xapp, RIC_CONTROL_PROCEDURE_ACTIVE, ran_func_id, id, NULL);
-
+  
+  
   // Send the message
   send_control_request(xapp, id, ric_id, ctrl_msg);  
 

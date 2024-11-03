@@ -273,10 +273,7 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
 void free_mac_call_proc_id(mac_call_proc_id_t* src)
 {
   // Note that the src could be NULL
-  if(src == NULL) 
-    return;
-
-  //free(src);
+  free(src);
 }
 
 mac_call_proc_id_t cp_mac_call_proc_id( mac_call_proc_id_t* src)
@@ -311,17 +308,13 @@ bool eq_mac_call_proc_id(mac_call_proc_id_t* m0, mac_call_proc_id_t* m1)
 
 void free_mac_ctrl_hdr( mac_ctrl_hdr_t* src)
 {
-
   assert(src != NULL);
-  //assert(0!=0 && "Not implemented" );
   (void)src;
 }
 
 mac_ctrl_hdr_t cp_mac_ctrl_hdr(mac_ctrl_hdr_t* src)
 {
   assert(src != NULL);
-  //assert(0!=0 && "Not implemented" ); 
-  //mac_ctrl_hdr_t ret = {0};
   mac_ctrl_hdr_t dst = {.dummy = src->dummy};
   return dst;
 }
@@ -330,9 +323,10 @@ bool eq_mac_ctrl_hdr(mac_ctrl_hdr_t* m0, mac_ctrl_hdr_t* m1)
 {
   assert(m0 != NULL);
   assert(m1 != NULL);
-
+  //TODO:
   //assert(0!=0 && "Not implemented" ); 
 
+  //return true;
   return m0->dummy == m1->dummy;
 }
 
@@ -345,36 +339,36 @@ bool eq_mac_ctrl_hdr(mac_ctrl_hdr_t* m0, mac_ctrl_hdr_t* m1)
 void free_mac_ctrl_msg( mac_ctrl_msg_t* src)
 {
   assert(src != NULL);
-
-  //assert(0!=0 && "Not implemented" ); 
-  (void)src;
-}
-
-bool eq_mac_ctrl_msg(mac_ctrl_msg_t* m0, mac_ctrl_msg_t* m1)
-{
-  assert(m0 != NULL);
-  assert(m1 != NULL);
-
-  //assert(0!=0 && "Not implemented" );
-  if(m0->action != m1->action || m0->mcs != m1->mcs || m0->prb != m1->prb)
-    return false;
-
-  return true;
+  if(src->ran_conf_len > 0){
+    assert(src->ran_conf != NULL);
+    free(src->ran_conf);
+  }
 }
 
 mac_ctrl_msg_t cp_mac_ctrl_msg(mac_ctrl_msg_t* src)
 {
   assert(src != NULL);
 
-  //assert(0!=0 && "Not implemented" ); 
   mac_ctrl_msg_t dst = {0};
-  dst.action = src->action;
-  dst.mcs = src->mcs;
-  dst.prb = src->prb;
+  dst.ran_conf_len = src->ran_conf_len;
 
-  assert(eq_mac_ctrl_msg(src, &dst) && "mac_ctrl_msg src and dst is not equal");
+  if (dst.ran_conf_len > 0) {
+    dst.ran_conf = calloc(src->ran_conf_len, sizeof(mac_conf_t));
+    assert(dst.ran_conf != NULL && "memory exhausted");
+  }
 
+  memcpy(dst.ran_conf, src->ran_conf, sizeof(mac_conf_t)*dst.ran_conf_len);
   return dst;
+}
+
+bool eq_mac_ctrl_msg(mac_ctrl_msg_t* m0, mac_ctrl_msg_t* m1)
+{
+  assert(m0 != NULL);
+  assert(m1 != NULL);
+  //TODO:
+  assert(0!=0 && "eq_mac_ctrl_msg Not implemented" ); 
+
+  return true;
 }
 
 
@@ -385,9 +379,7 @@ mac_ctrl_msg_t cp_mac_ctrl_msg(mac_ctrl_msg_t* src)
 void free_mac_ctrl_out(mac_ctrl_out_t* src)
 {
   assert(src != NULL);
-
-  //assert(0!=0 && "Not implemented" ); 
-  //free(src);
+  (void)src;
 }
 
 mac_ctrl_out_t cp_mac_ctrl_out(mac_ctrl_out_t* src)

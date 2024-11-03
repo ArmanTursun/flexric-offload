@@ -181,8 +181,10 @@ sm_ans_xapp_t control_sm_xapp_api(global_e2_node_id_t* id, uint32_t ran_func_id,
   assert(id != NULL);
   assert(ran_func_id == SM_MAC_ID || ran_func_id == SM_SLICE_ID || ran_func_id == SM_TC_ID || ran_func_id == SM_RC_ID);
   assert(wr != NULL);
-
-  return control_sm_sync_xapp(xapp, id, ran_func_id, wr);
+  
+  sm_ag_if_wr_t* req = (sm_ag_if_wr_t*)wr;
+  
+  return control_sm_sync_xapp(xapp, id, ran_func_id, &req->ctrl.mac_ctrl);
 }
 
 

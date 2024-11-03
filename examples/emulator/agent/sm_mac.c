@@ -36,16 +36,21 @@ void read_mac_setup_sm(void* data)
 sm_ag_if_ans_t write_ctrl_mac_sm(void const* data)
 {
   assert(data != NULL);
+  mac_ctrl_req_data_t const* mac_req_ctrl = (mac_ctrl_req_data_t const* )data; // &data->slice_req_ctrl;
+  mac_ctrl_msg_t const* msg = &mac_req_ctrl->msg;
 
-  mac_ctrl_req_data_t* ctrl = (mac_ctrl_req_data_t*)data; 
-  mac_ctrl_msg_t const* msg = &ctrl->msg;
+  printf("[E2-Agent]: MAC CONTROL rx\n");
+  //printf("Con len: %d \n", msg->ran_conf_len);
+  for (size_t i = 0; i < msg->ran_conf_len; i++) {
+    // TODO
+    printf("[E2-Agent]: ran_conf[%ld].isset_pusch_mcs %d\n", i, msg->ran_conf[i].isset_pusch_mcs);
+    printf("[E2-Agent]: ran_conf[%ld].pusch_mcs %d\n", i, msg->ran_conf[i].pusch_mcs);
+    printf("[E2-Agent]: ran_conf[%ld].rnti %d\n", i, msg->ran_conf[i].rnti);
+  }
 
-  assert(ctrl->hdr.dummy == 1);
-  assert(ctrl->msg.action == 42);
-  printf("mcs = %u, prb = %u \n", msg->mcs, msg->prb);
-
-  sm_ag_if_ans_t ans = {.type = CTRL_OUTCOME_SM_AG_IF_ANS_V0 };
+  sm_ag_if_ans_t ans = {.type = CTRL_OUTCOME_SM_AG_IF_ANS_V0};
   ans.ctrl_out.type = MAC_AGENT_IF_CTRL_ANS_V0;
+  ans.ctrl_out.mac.ans = MAC_CTRL_OUT_OK;
   return ans;
 }
 

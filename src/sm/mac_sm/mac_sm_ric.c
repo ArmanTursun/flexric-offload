@@ -26,7 +26,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 #include "enc/mac_enc_generic.h"
 #include "dec/mac_dec_generic.h"
@@ -59,16 +58,16 @@ sm_subs_data_t on_subscription_mac_sm_ric(sm_ric_t const* sm_ric, void* cmd)
   const int max_str_sz = 10;
   if(strncmp(cmd, "1_ms", max_str_sz) == 0 ){
     mac.et.ms = 1;
-    printf("period is 1 ms\n");
+    //printf("period is 1 ms\n");
   } else if (strncmp(cmd, "2_ms", max_str_sz) == 0 ) {
     mac.et.ms = 2;
-    printf("period is 2 ms\n");
+    //printf("period is 2 ms\n");
   } else if (strncmp(cmd, "5_ms", max_str_sz) == 0 ) {
     mac.et.ms = 5;
-    printf("period is 5 ms\n");
+    //printf("period is 5 ms\n");
   } else if (strncmp(cmd, "10_ms", max_str_sz) == 0 ) {
     mac.et.ms = 10;
-    printf("period is 10 ms\n");
+    //printf("period is 10 ms\n");
   } else {
     assert(0 != 0 && "Invalid input");
   }
@@ -117,8 +116,8 @@ sm_ctrl_req_data_t ric_on_control_req_mac_sm_ric(sm_ric_t const* sm_ric, void* c
   assert(sm_ric != NULL); 
   assert(ctrl != NULL); 
   mac_ctrl_req_data_t const* req = (mac_ctrl_req_data_t const*)ctrl;
-  assert(req->hdr.dummy == 1);
-  assert(req->msg.action == 42);
+  //assert(req->hdr.dummy == 1);
+  //assert(req->msg.action == 42);
 
   sm_mac_ric_t* sm = (sm_mac_ric_t*)sm_ric;  
 
@@ -213,9 +212,10 @@ void free_ind_data_mac_sm_ric(void* msg)
 
   free_mac_ind_hdr(&ind->hdr); 
   free_mac_ind_msg(&ind->msg); 
-  //assert(ind->proc_id == NULL && "Not implemented");
-  //if(ind->proc_id != NULL){
-    //free_mac_call_proc_id(ind->proc_id);
+  assert(ind->proc_id == NULL && "Not implemented");
+  if(ind->proc_id != NULL){
+    free_mac_call_proc_id(ind->proc_id);
+  }
 }
 
 static
