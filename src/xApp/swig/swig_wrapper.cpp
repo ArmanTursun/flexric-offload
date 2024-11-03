@@ -162,11 +162,18 @@ void control_mac_sm(global_e2_node_id_t* id, mac_ctrl_msg_t* ctrl)
 {
   assert(id != NULL);
   assert(ctrl != NULL);
+  
+  sm_ag_if_wr_t wr;
+  wr.type = CONTROL_SM_AG_IF_WR;
+  wr.ctrl.type = MAC_CTRL_REQ_V0;
+  wr.ctrl.mac_ctrl.hdr.dummy = 0;
+  wr.ctrl.mac_ctrl.msg = cp_mac_ctrl_msg(ctrl);
 
-  mac_ctrl_req_data_t cp = {.msg = cp_mac_ctrl_msg(ctrl)};
-  cp.hdr.dummy = 1;
-  control_sm_xapp_api(id, SM_MAC_ID, &cp);
-  free_mac_ctrl_msg(&cp.msg);
+  //mac_ctrl_req_data_t cp = {.msg = cp_mac_ctrl_msg(ctrl)};
+  //cp.hdr.dummy = 0;
+  //control_sm_xapp_api(id, SM_MAC_ID, &cp);
+  control_sm_xapp_api(id, SM_MAC_ID, &wr);
+  free_mac_ctrl_msg(&wr.ctrl.mac_ctrl.msg);
   poll(NULL, 0, 10);
 }
 

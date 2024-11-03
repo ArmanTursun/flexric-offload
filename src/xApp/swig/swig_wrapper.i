@@ -117,7 +117,7 @@ namespace std {
   %template(GTP_NGUTStatsVector) vector<gtp_ngu_t_stats_t>;
 }
 
-
+%array_class(mac_conf_t, mac_conf_array);
 %array_class(ue_slice_assoc_t, ue_slice_assoc_array);
 %array_class(fr_slice_t, slice_array);
 %array_class(uint32_t, del_dl_array);
