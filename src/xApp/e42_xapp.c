@@ -233,7 +233,7 @@ e42_xapp_t* init_e42_xapp(fr_args_t const* args)
 
   printf("[xApp]: DB filename = %s \n ", filename );
 
-  init_db_xapp(&xapp->db, filename);
+  //init_db_xapp(&xapp->db, filename);
 
   free(dir);
   free(db_name);
@@ -354,7 +354,7 @@ void free_e42_xapp(e42_xapp_t* xapp)
 
   free_msg_dispatcher(&xapp->msg_disp);
 
-  close_db_xapp(&xapp->db);
+  //close_db_xapp(&xapp->db);
 
   int rc = pthread_mutex_destroy(&xapp->conn_mtx);
   assert(rc == 0);
