@@ -29,11 +29,12 @@ class MACCallback(ric.mac_cb):
             print('MAC rnti = ' + str(ind.ue_stats[0].rnti))
 
 
-def create_conf(mcs, prb, add):
+def create_conf(rnti, mcs, prb, add):
     conf = ric.mac_conf_t()
     conf.isset_pusch_mcs = add
     conf.pusch_mcs = mcs
-    conf.rnti = prb
+    conf.pusch_prb = prb
+    conf.rnti = rnti
     return conf
 
 node_idx = 0
@@ -63,36 +64,27 @@ if __name__ == '__main__':
         print(f"Global E2 Node [{i}]: PLMN MCC = {conn[i].id.plmn.mcc}")
         print(f"Global E2 Node [{i}]: PLMN MNC = {conn[i].id.plmn.mnc}")
 
-    try:
-        for i in range(0, len(conn)):
-            mac_cb = MACCallback()
-            hndlr = ric.report_mac_sm(conn[i].id, ric.Interval_ms_10, mac_cb)
-            mac_hndlr.append(hndlr)
-            time.sleep(1)
+    for i in range(0, len(conn)):
+        mac_cb = MACCallback()
+        hndlr = ric.report_mac_sm(conn[i].id, ric.Interval_ms_10, mac_cb)
+        mac_hndlr.append(hndlr)
+        time.sleep(1)
         
-        msg = ric.mac_ctrl_msg_t()
-        msg.ran_conf_len = 2
-        confs = ric.mac_conf_array(2)
-        for i in range(0, msg.ran_conf_len):
-            confs[i] = create_conf(mcs, prb, add)
+    msg = ric.mac_ctrl_msg_t()
+    msg.ran_conf_len = 2
+    confs = ric.mac_conf_array(2)
+    for i in range(0, msg.ran_conf_len):
+        confs[i] = create_conf(i, mcs, prb, add)
+        print(f"Sending to rnti: {i}, mcs value: {mcs}, prb value: {prb}, add value: {add}")
         
-        msg.ran_conf = confs
-        print(f"Sending mcs value: {mcs}, prb value: {prb}, add value: {add}")
-        ric.control_mac_sm(conn[node_idx].id, msg)
+    msg.ran_conf = confs
+    ric.control_mac_sm(conn[node_idx].id, msg)
         
-        for i in range(0, len(mac_hndlr)):
-            ric.rm_report_mac_sm(mac_hndlr[i])
+    for i in range(0, len(mac_hndlr)):
+        ric.rm_report_mac_sm(mac_hndlr[i])
         
-        while ric.try_stop == 0:
-            time.sleep(1)
-        print("Test finished")
+    while ric.try_stop == 0:
+        time.sleep(1)
+    print("Test finished")
 
-    except KeyboardInterrupt:
-        print("Stopping DRL and cleaning up...")
-
-        # Avoid deadlock. ToDo revise architecture 
-        while ric.try_stop == 0:
-            time.sleep(1)
-
-        print("Test finished")
 

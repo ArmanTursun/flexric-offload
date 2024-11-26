@@ -45,6 +45,7 @@ sm_ag_if_ans_t write_ctrl_mac_sm(void const* data)
     // TODO
     printf("[E2-Agent]: ran_conf[%ld].isset_pusch_mcs %d\n", i, msg->ran_conf[i].isset_pusch_mcs);
     printf("[E2-Agent]: ran_conf[%ld].pusch_mcs %d\n", i, msg->ran_conf[i].pusch_mcs);
+    printf("[E2-Agent]: ran_conf[%ld].pusch_prb %d\n", i, msg->ran_conf[i].pusch_prb);
     printf("[E2-Agent]: ran_conf[%ld].rnti %d\n", i, msg->ran_conf[i].rnti);
   }
 

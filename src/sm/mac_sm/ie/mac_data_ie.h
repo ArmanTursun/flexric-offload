@@ -182,6 +182,7 @@ bool eq_mac_ctrl_hdr(mac_ctrl_hdr_t* m0, mac_ctrl_hdr_t* m1);
 typedef struct {
   uint32_t rnti;     // compulsory. Used to detect which cell you want to modify
   uint8_t pusch_mcs; // set Modulation Coding Scheme (MCS) value for Physical Uplink Shared Channel. Range: [0..28]
+  uint16_t pusch_prb; // set PRB for uplink. Range [5, 273]
   bool isset_pusch_mcs; 
 } mac_conf_t;
 
