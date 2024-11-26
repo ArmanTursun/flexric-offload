@@ -90,10 +90,10 @@ bool eq_mac_ind_hdr(mac_ind_hdr_t* m0, mac_ind_hdr_t* m1);
 
 typedef struct
 {
-  uint64_t dl_aggr_tbs;
-  uint64_t ul_aggr_tbs;
-  uint64_t dl_aggr_bytes_sdus;
-  uint64_t ul_aggr_bytes_sdus;
+  //uint64_t dl_aggr_tbs;
+  //uint64_t ul_aggr_tbs;
+  //uint64_t dl_aggr_bytes_sdus;
+  //uint64_t ul_aggr_bytes_sdus;
   uint64_t dl_curr_tbs;
   uint64_t ul_curr_tbs;
   uint64_t dl_sched_rb;
@@ -105,18 +105,18 @@ typedef struct
   float dl_bler;
   float ul_bler;
 
-  uint32_t dl_harq[5];
-  uint32_t ul_harq[5];
-  uint32_t dl_num_harq;
-  uint32_t ul_num_harq;
+  //uint32_t dl_harq[5];
+  //uint32_t ul_harq[5];
+  //uint32_t dl_num_harq;
+  //uint32_t ul_num_harq;
 
   uint32_t rnti;
-  uint32_t dl_aggr_prb; 
-  uint32_t ul_aggr_prb;
-  uint32_t dl_aggr_sdus;
-  uint32_t ul_aggr_sdus;
-  uint32_t dl_aggr_retx_prb;
-  uint32_t ul_aggr_retx_prb;
+  //uint32_t dl_aggr_prb; 
+  //uint32_t ul_aggr_prb;
+  //uint32_t dl_aggr_sdus;
+  //uint32_t ul_aggr_sdus;
+  //uint32_t dl_aggr_retx_prb;
+  //uint32_t ul_aggr_retx_prb;
 
   uint32_t bsr;
   uint16_t frame;
@@ -127,7 +127,7 @@ typedef struct
   uint8_t ul_mcs1;
   uint8_t dl_mcs2; 
   uint8_t ul_mcs2; 
-  int8_t phr; 
+  //int8_t phr; 
 
 } mac_ue_stats_impl_t;
 

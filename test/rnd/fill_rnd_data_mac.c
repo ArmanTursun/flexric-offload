@@ -28,10 +28,10 @@
 
 static int64_t timestamp = 0;
 static uint16_t frame = 0, slot = 0;
-static uint32_t lower_dl_aggr_prb = 0, upper_dl_aggr_prb = 0;
-static uint32_t lower_dl_aggr_retx_prb = 0, upper_dl_aggr_retx_prb = 0;
-static uint32_t lower_ul_aggr_prb = 0, upper_ul_aggr_prb = 0;
-static uint32_t lower_ul_aggr_retx_prb = 0, upper_ul_aggr_retx_prb = 0;
+//static uint32_t lower_dl_aggr_prb = 0, upper_dl_aggr_prb = 0;
+//static uint32_t lower_dl_aggr_retx_prb = 0, upper_dl_aggr_retx_prb = 0;
+//static uint32_t lower_ul_aggr_prb = 0, upper_ul_aggr_prb = 0;
+//static uint32_t lower_ul_aggr_retx_prb = 0, upper_ul_aggr_retx_prb = 0;
 
 void fill_mac_ind_data(mac_ind_data_t* ind)
 {
@@ -60,17 +60,17 @@ void fill_mac_ind_data(mac_ind_data_t* ind)
       slot %= 20;
     }
 
-    lower_dl_aggr_prb += 106;
-    upper_dl_aggr_prb = lower_dl_aggr_prb + 106;
+    //lower_dl_aggr_prb += 106;
+    //upper_dl_aggr_prb = lower_dl_aggr_prb + 106;
 
-    lower_dl_aggr_retx_prb += 106;
-    upper_dl_aggr_retx_prb = lower_dl_aggr_retx_prb + 106;
+    //lower_dl_aggr_retx_prb += 106;
+    //upper_dl_aggr_retx_prb = lower_dl_aggr_retx_prb + 106;
 
-    lower_ul_aggr_prb += 53;
-    upper_ul_aggr_prb = lower_ul_aggr_prb + 53;
+    //lower_ul_aggr_prb += 53;
+    //upper_ul_aggr_prb = lower_ul_aggr_prb + 53;
 
-    lower_ul_aggr_retx_prb += 53;
-    upper_ul_aggr_retx_prb = lower_ul_aggr_retx_prb + 53;
+    //lower_ul_aggr_retx_prb += 53;
+    //upper_ul_aggr_retx_prb = lower_ul_aggr_retx_prb + 53;
   }
   timestamp = time_now_us();
 
@@ -79,14 +79,14 @@ void fill_mac_ind_data(mac_ind_data_t* ind)
     assert(ind_msg->ue_stats != NULL && "memory exhausted");
   }
 
-  const size_t numDLHarq = 4;
-  const size_t numUlHarq = 4;
+  //const size_t numDLHarq = 4;
+  //const size_t numUlHarq = 4;
 
   for(uint32_t i = 0; i < ind_msg->len_ue_stats; ++i){
-    ind_msg->ue_stats[i].dl_aggr_tbs = abs(rand()%mod);
-    ind_msg->ue_stats[i].ul_aggr_tbs = abs(rand()%mod);
-    ind_msg->ue_stats[i].dl_aggr_bytes_sdus = abs(rand()%mod);
-    ind_msg->ue_stats[i].ul_aggr_bytes_sdus = abs(rand()%mod);
+    //ind_msg->ue_stats[i].dl_aggr_tbs = abs(rand()%mod);
+    //ind_msg->ue_stats[i].ul_aggr_tbs = abs(rand()%mod);
+    //ind_msg->ue_stats[i].dl_aggr_bytes_sdus = abs(rand()%mod);
+    //ind_msg->ue_stats[i].ul_aggr_bytes_sdus = abs(rand()%mod);
     ind_msg->ue_stats[i].pusch_snr = 64.0; //: float = -64;
     ind_msg->ue_stats[i].pucch_snr = 64.0; //: float = -64;
 
@@ -98,26 +98,26 @@ void fill_mac_ind_data(mac_ind_data_t* ind)
     ind_msg->ue_stats[i].dl_bler = abs(rand()%mod);
     ind_msg->ue_stats[i].ul_bler = abs(rand()%mod);
 
-    ind_msg->ue_stats[i].dl_aggr_prb = lower_dl_aggr_prb + rand()%(upper_dl_aggr_prb - lower_dl_aggr_prb + 1);
-    ind_msg->ue_stats[i].dl_aggr_retx_prb = lower_dl_aggr_retx_prb + rand()%(upper_dl_aggr_retx_prb - lower_dl_aggr_retx_prb + 1);
-    ind_msg->ue_stats[i].ul_aggr_prb = lower_ul_aggr_prb + rand()%(upper_ul_aggr_prb - lower_ul_aggr_prb + 1);
-    ind_msg->ue_stats[i].ul_aggr_retx_prb = lower_ul_aggr_retx_prb + rand()%(upper_ul_aggr_retx_prb - lower_ul_aggr_retx_prb + 1);
+    //ind_msg->ue_stats[i].dl_aggr_prb = lower_dl_aggr_prb + rand()%(upper_dl_aggr_prb - lower_dl_aggr_prb + 1);
+    //ind_msg->ue_stats[i].dl_aggr_retx_prb = lower_dl_aggr_retx_prb + rand()%(upper_dl_aggr_retx_prb - lower_dl_aggr_retx_prb + 1);
+    //ind_msg->ue_stats[i].ul_aggr_prb = lower_ul_aggr_prb + rand()%(upper_ul_aggr_prb - lower_ul_aggr_prb + 1);
+    //ind_msg->ue_stats[i].ul_aggr_retx_prb = lower_ul_aggr_retx_prb + rand()%(upper_ul_aggr_retx_prb - lower_ul_aggr_retx_prb + 1);
 
-    ind_msg->ue_stats[i].dl_aggr_sdus = abs(rand()%mod);
-    ind_msg->ue_stats[i].ul_aggr_sdus= abs(rand()%mod);
+    //ind_msg->ue_stats[i].dl_aggr_sdus = abs(rand()%mod);
+    //ind_msg->ue_stats[i].ul_aggr_sdus= abs(rand()%mod);
     ind_msg->ue_stats[i].wb_cqi= abs(rand()%mod);
     ind_msg->ue_stats[i].dl_mcs1= abs(rand()%mod);
     ind_msg->ue_stats[i].ul_mcs1= abs(rand()%mod);
     ind_msg->ue_stats[i].dl_mcs2= abs(rand()%mod);
     ind_msg->ue_stats[i].ul_mcs2= abs(rand()%mod);
-    ind_msg->ue_stats[i].phr= (rand()%64) - 23; // 41 abs(rand()%mod);
+    //ind_msg->ue_stats[i].phr= (rand()%64) - 23; // 41 abs(rand()%mod);
     ind_msg->ue_stats[i].bsr= abs(rand()%mod);
-    ind_msg->ue_stats[i].dl_num_harq = numUlHarq;
-    for (uint8_t j = 0; j < numDLHarq; j++)
-      ind_msg->ue_stats[i].dl_harq[j] = abs(rand()%mod);
-    ind_msg->ue_stats[i].ul_num_harq = numUlHarq;
-    for (uint8_t j = 0; j < numUlHarq; j++)
-      ind_msg->ue_stats[i].ul_harq[j] = abs(rand()%mod);
+    //ind_msg->ue_stats[i].dl_num_harq = numUlHarq;
+    //for (uint8_t j = 0; j < numDLHarq; j++)
+      //ind_msg->ue_stats[i].dl_harq[j] = abs(rand()%mod);
+    //ind_msg->ue_stats[i].ul_num_harq = numUlHarq;
+    //for (uint8_t j = 0; j < numUlHarq; j++)
+      //ind_msg->ue_stats[i].ul_harq[j] = abs(rand()%mod);
   }
 }
 

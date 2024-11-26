@@ -42,10 +42,10 @@ void to_string_mac_ue_stats(mac_ue_stats_impl_t* stats, int64_t tstamp, char* ou
         "tstamp=%ld,"
         "frame=%d,"
         "slot=%d,"
-        "dl_aggr_tbs=%lu,"
-        "ul_aggr_tbs=%lu,"
-        "dl_aggr_bytes_sdus=%lu,"
-        "ul_aggr_bytes_sdus=%lu,"
+        //"dl_aggr_tbs=%lu,"
+        //"ul_aggr_tbs=%lu,"
+        //"dl_aggr_bytes_sdus=%lu,"
+        //"ul_aggr_bytes_sdus=%lu,"
         "dl_curr_tbs=%lu,"
         "ul_curr_tbs=%lu,"
         "dl_sched_rb=%lu,"
@@ -53,41 +53,41 @@ void to_string_mac_ue_stats(mac_ue_stats_impl_t* stats, int64_t tstamp, char* ou
         "pusch_snr=%g,"
         "pucch_snr=%g,"
         "rnti=%x,"
-        "dl_aggr_prb=%u,"
-        "ul_aggr_prb=%u,"
-        "dl_aggr_sdus=%u,"
-        "ul_aggr_sdus=%u,"
-        "dl_aggr_retx_prb=%u,"
-        "ul_aggr_retx_prb=%u,"
+        //"dl_aggr_prb=%u,"
+        //"ul_aggr_prb=%u,"
+        //"dl_aggr_sdus=%u,"
+        //"ul_aggr_sdus=%u,"
+        //"dl_aggr_retx_prb=%u,"
+        //"ul_aggr_retx_prb=%u,"
         "wb_cqi=%u,"
         "dl_mcs1=%u,"
         "ul_mcs1=%u,"
         "dl_mcs2=%u,"
         "ul_mcs2=%u,"
-        "phr=%d,"
+        //"phr=%d,"
         "bsr=%u,"
         "dl_bler=%f,"
         "ul_bler=%f,"
-        "dl_num_harq=%d,"
-        "dl_harq[0]=%u,"
-        "dl_harq[1]=%u,"
-        "dl_harq[2]=%u,"
-        "dl_harq[3]=%u,"
-        "dlsch_errors=%u,"
-        "ul_num_harq=%d,"
-        "ul_harq[0]=%u,"
-        "ul_harq[1]=%u,"
-        "ul_harq[2]=%u,"
-        "ul_harq[3]=%u,"
-        "ulsch_errors=%u"
+        //"dl_num_harq=%d,"
+        //"dl_harq[0]=%u,"
+        //"dl_harq[1]=%u,"
+        //"dl_harq[2]=%u,"
+        //"dl_harq[3]=%u,"
+        //"dlsch_errors=%u,"
+        //"ul_num_harq=%d,"
+        //"ul_harq[0]=%u,"
+        //"ul_harq[1]=%u,"
+        //"ul_harq[2]=%u,"
+        //"ul_harq[3]=%u,"
+        //"ulsch_errors=%u"
         "\n"
         ,tstamp
         ,stats->frame
         ,stats->slot
-        ,stats->dl_aggr_tbs
-        ,stats->ul_aggr_tbs 
-        ,stats->dl_aggr_bytes_sdus 
-        ,stats->ul_aggr_bytes_sdus  
+        //,stats->dl_aggr_tbs
+        //,stats->ul_aggr_tbs 
+        //,stats->dl_aggr_bytes_sdus 
+        //,stats->ul_aggr_bytes_sdus  
         ,stats->dl_curr_tbs
         ,stats->ul_curr_tbs
         ,stats->dl_sched_rb
@@ -95,33 +95,33 @@ void to_string_mac_ue_stats(mac_ue_stats_impl_t* stats, int64_t tstamp, char* ou
         ,stats->pusch_snr 
         ,stats->pucch_snr 
         ,stats->rnti 
-        ,stats->dl_aggr_prb  
-        ,stats->ul_aggr_prb 
-        ,stats->dl_aggr_sdus 
-        ,stats->ul_aggr_sdus 
-        ,stats->dl_aggr_retx_prb  
-        ,stats->ul_aggr_retx_prb
+        //,stats->dl_aggr_prb  
+        //,stats->ul_aggr_prb 
+        //,stats->dl_aggr_sdus 
+        //,stats->ul_aggr_sdus 
+        //,stats->dl_aggr_retx_prb  
+        //,stats->ul_aggr_retx_prb
         ,stats->wb_cqi
         ,stats->dl_mcs1
         ,stats->ul_mcs1
         ,stats->dl_mcs2
         ,stats->ul_mcs2
-        ,stats->phr 
+        //,stats->phr 
         ,stats->bsr
         ,stats->dl_bler
         ,stats->ul_bler
-        ,stats->dl_num_harq
-        ,stats->dl_harq[0]
-        ,stats->dl_harq[1]
-        ,stats->dl_harq[2]
-        ,stats->dl_harq[3]
-        ,stats->dl_harq[4]
-        ,stats->ul_num_harq
-        ,stats->ul_harq[0]
-        ,stats->ul_harq[1]
-        ,stats->ul_harq[2]
-        ,stats->ul_harq[3]
-        ,stats->ul_harq[4]
+        //,stats->dl_num_harq
+        //,stats->dl_harq[0]
+        //,stats->dl_harq[1]
+        //,stats->dl_harq[2]
+        //,stats->dl_harq[3]
+        //,stats->dl_harq[4]
+        //,stats->ul_num_harq
+        //,stats->ul_harq[0]
+        //,stats->ul_harq[1]
+        //,stats->ul_harq[2]
+        //,stats->ul_harq[3]
+        //,stats->ul_harq[4]
         );
   assert(rc < (int)max && "Not enough space in the char array to write all the data");
 }
