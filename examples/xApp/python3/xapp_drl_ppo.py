@@ -68,7 +68,7 @@ if __name__ == '__main__':
         mac_cb = MACCallback()
         hndlr = ric.report_mac_sm(conn[i].id, ric.Interval_ms_10, mac_cb)
         mac_hndlr.append(hndlr)
-        time.sleep(1)
+    time.sleep(1)
         
     msg = ric.mac_ctrl_msg_t()
     msg.ran_conf_len = 2

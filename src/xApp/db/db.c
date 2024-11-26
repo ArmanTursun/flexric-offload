@@ -114,7 +114,7 @@ void* worker_thread(void* arg)
         break;
 
     for(size_t i = 0; i < sz; ++i){
-      //write_db_gen(db->handler, &data[i].id, &data[i].rd);
+      write_db_gen(db->handler, &data[i].id, &data[i].rd);
       free_global_e2_node_id(&data[i].id);
 
       assert(data[i].rd.type == INDICATION_MSG_AGENT_IF_ANS_V0);
