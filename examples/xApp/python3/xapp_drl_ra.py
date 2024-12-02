@@ -14,6 +14,8 @@ import pandas as pd
 import seaborn as sns
 from torch.distributions.multivariate_normal import MultivariateNormal
 import scipy
+import threading
+from aggr_data import AggrData
 
 cur_dir = os.path.dirname(os.path.abspath(__file__))
 # print("Current Directory:", cur_dir)
@@ -38,14 +40,14 @@ class ThompsonSampling(object):
         cov = self.V_inv / self.eta
         return MultivariateNormal(mean, covariance_matrix=cov).sample()
         
-    def reward(self, user):
+    def reward(self, context):
         theta = self.sample_posterior()
-        return user.dot(theta).item()
+        return context.dot(theta).item()
         
-    def update(self, user, action, reward):
-        self.bt += reward * user
-        omega = self.V_inv @ user
-        self.V_inv -= omega[:, None] @ omega[None, :] / (1 + omega.dot(user))
+    def update(self, context, action, reward):
+        self.bt += reward * context
+        omega = self.V_inv @ context
+        self.V_inv -= omega[:, None] @ omega[None, :] / (1 + omega.dot(context))
 
 class VITS(object):
     def __init__(self, dimension, mean_prior, cov_prior, device, is_linear, eta, h, nb_updates, approx, hessian_free, mc_samples):
@@ -55,7 +57,7 @@ class VITS(object):
         self.approx = approx
         self.hessian_free = hessian_free
         self.mc_samples = mc_samples
-        self.users = torch.empty((0, dimension)).to(self.device)
+        self.context = torch.empty((0, dimension)).to(self.device)
         self.rewards = torch.empty((0,)).to(self.device)
         self.linear = is_linear
         self.h = h
@@ -76,18 +78,18 @@ class VITS(object):
         theta = self.mean + self.cov_semi @ eps
         return theta
         
-    def reward(self, user):
+    def reward(self, context):
         theta = self.sample_posterior()
-        return user.dot(theta).item()
+        return context.dot(theta).item()
     
     def potential(self, theta):
         if self.linear:
-            data_term = torch.sum(torch.square(self.users @ theta - self.rewards))
+            data_term = torch.sum(torch.square(self.context @ theta - self.rewards))
             regu = (theta - self.mean_prior).T @ self.cov_prior_inv @ (theta - self.mean_prior)
             return self.eta * (data_term + regu) / 2
-            #return torch.sum(torch.square(self.users @ theta - self.rewards))
+            #return torch.sum(torch.square(self.context @ theta - self.rewards))
         else:
-            data_term = self.criterion(self.users @ theta, self.rewards)
+            data_term = self.criterion(self.context @ theta, self.rewards)
             regu = (theta - self.mean_prior).T @ self.cov_prior_inv @ (theta - self.mean_prior)
             return self.eta * (data_term + regu) / 2
     
@@ -116,8 +118,8 @@ class VITS(object):
             cov_semi_inv = torch.linalg.pinv(cov_semi)
         return cov_semi, cov_semi_inv
         
-    def update(self, user, action, reward):
-        self.users = torch.cat([self.users, torch.tensor(user, dtype=torch.float32)[None, :].to(self.device)])
+    def update(self, context, action, reward):
+        self.context = torch.cat([self.context, torch.tensor(context, dtype=torch.float32)[None, :].to(self.device)])
         self.rewards = torch.cat([self.rewards, torch.tensor([reward], dtype=torch.float32).to(self.device)])
         h = self.h / (len(self.rewards) * self.eta)
         for _ in range(self.nb_updates):
@@ -135,7 +137,7 @@ class Langevin(object):
         self.mean_prior = mean_prior
         self.cov_prior = cov_prior
         self.cov_prior_inv = torch.diag(1/(self.eta * torch.diag(cov_prior))).to(self.device)
-        self.users = torch.empty((0, dimension)).to(self.device)
+        self.context = torch.empty((0, dimension)).to(self.device)
         self.rewards = torch.empty((0,)).to(self.device)
         self.linear = is_linear
         self.h = h
@@ -145,7 +147,7 @@ class Langevin(object):
         return {'eta': self.eta, 'dimension': self.dimension, 'h': self.h,
                 'nb_updates': self.nb_updates, 'algorithm': 'lmcts'}
 
-    def reward(self, user):
+    def reward(self, context):
         if len(self.rewards) == 0:
             self.theta = self.mean_prior + torch.diag(1/torch.sqrt(torch.diag(self.cov_prior))) @ torch.normal(0, 1, size=(self.dimension,)).to(self.device)
         else:
@@ -153,15 +155,15 @@ class Langevin(object):
             for _ in range(10):
                 gradient = self.compute_gradient()
                 self.theta += - h * gradient + torch.normal(0, np.sqrt(2 * h), size=gradient.shape).to(self.device)
-        return user.dot(self.theta).item()
+        return context.dot(self.theta).item()
     
     def potential(self, theta):
         if self.linear:
-            data_term = torch.sum(torch.square(self.users @ theta - self.rewards))
+            data_term = torch.sum(torch.square(self.context @ theta - self.rewards))
             regu = (theta - self.mean_prior).T @ self.cov_prior_inv @ (theta - self.mean_prior)
             return self.eta * (data_term + regu) / 2
         else:
-            data_term = torch.nn.BCEWithLogitsLoss()(self.users @ theta, self.rewards)
+            data_term = torch.nn.BCEWithLogitsLoss()(self.context @ theta, self.rewards)
             regu = (theta - self.mean_prior).T @ self.cov_prior_inv @ (theta - self.mean_prior)
             return self.eta * (data_term + regu) / 2
     
@@ -171,8 +173,8 @@ class Langevin(object):
         self.theta.requires_grad = False
         return gradient
     
-    def update(self, user, action, reward):
-        self.users = torch.cat([self.users, torch.tensor(user, dtype=torch.float32).to(self.device)[None, :]])
+    def update(self, context, action, reward):
+        self.context = torch.cat([self.context, torch.tensor(context, dtype=torch.float32).to(self.device)[None, :]])
         self.rewards = torch.cat([self.rewards, torch.tensor([reward], dtype=torch.float32).to(self.device)])
         h = self.h / (len(self.rewards))
         for _ in range(self.nb_updates):
@@ -180,23 +182,15 @@ class Langevin(object):
             self.theta += - h * gradient + torch.normal(0, np.sqrt(2 * h), size=gradient.shape).to(self.device)
             del gradient
 
+node_idx = 0
+mac_hndlr = []
+conn = None
 
-# MACCallback class is defined and derived from C++ class mac_cb
-class MACCallback(ric.mac_cb):
-    # Define Python class 'constructor'
-    def __init__(self):
-        # Call C++ base class constructor
-        ric.mac_cb.__init__(self)
-    # Override C++ method: virtual void handle(swig_mac_ind_msg_t a) = 0;
-    def handle(self, ind):
-        # Print swig_mac_ind_msg_t
-        if len(ind.ue_stats) > 0:
-            t_now = time.time_ns() / 1000.0
-            t_mac = ind.tstamp / 1.0
-            t_diff = t_now - t_mac
-            print(f"MAC Indication tstamp {t_now} diff {t_diff}")
-            print('MAC rnti = ' + str(ind.ue_stats[0].rnti))
+global_ue_aggr_data = AggrData(20)
 
+# Global lock to ensure thread-safe access to the global dictionary
+global_lock_data = threading.Lock()
+global_lock_offload = threading.Lock()
 
 def create_conf(rnti, mcs, prb, add):
     conf = ric.mac_conf_t()
@@ -206,8 +200,112 @@ def create_conf(rnti, mcs, prb, add):
     conf.rnti = rnti
     return conf
 
-node_idx = 0
-mac_hndlr = []
+def send_action():
+    msg = ric.mac_ctrl_msg_t()
+    msg.ran_conf_len = 2
+    confs = ric.mac_conf_array(2)
+    for i in range(0, msg.ran_conf_len):
+        confs[i] = create_conf(i, mcs, prb, add)
+        print(f"Sending to rnti: {i}, mcs value: {mcs}, prb value: {prb}, add value: {add}")
+        
+    msg.ran_conf = confs
+    ric.control_mac_sm(conn[node_idx].id, msg)
+
+class vran(object):
+    def __init__(self, dimension, regularisation, nb_iters, device, is_linear, Agent, hyperparameters, T, seed):
+        self.dimension = dimension
+        self.device = device
+        self.is_linear = is_linear
+        self.regularisation = regularisation
+        self.nb_iters = nb_iters
+        self.Agent = Agent
+        self.hyperparameters = hyperparameters
+        self.T = T
+        self.seed = seed
+
+        # Generate all possible actions (MCS and PRB)
+        self.action = torch.tensor(self.generate_actions(), dtype=torch.float32).to(self.device)
+
+        # initialize agents
+        np.random.seed(self.seed)
+        torch.manual_seed(self.seed)
+        mean_prior = torch.mean(self.action, axis=0)
+        cov_prior = torch.diag(torch.var(self.action, axis=0))
+        self.agents = [self.Agent(self.dimension, mean_prior, cov_prior, self.device, self.is_linear, *self.hyperparameters) for _ in range(len(self.action))]
+        print("Initilized VITS agents")
+    
+    def generate_actions(self):
+        """
+        Generate all possible actions (MCS and PRB combinations).
+        :return: Array of actions.
+        """
+        MCS_range = range(0, 29)  # MCS values [0, 28]
+        PRB_range = range(1, 107)  # PRB values [1, 273]
+        return np.array([[mcs, prb] for mcs in MCS_range for prb in PRB_range])
+        
+    def evaluate(self, context, action):
+        rewards = self.action @ context
+        expected_reward = rewards[action]
+        best_expected_reward = rewards.max()
+        if self.is_linear:
+            reward = expected_reward + torch.normal(0, 1, size=(1,)).to(self.device)[0]
+        else:
+            reward = torch.bernoulli(1 / (1 + torch.exp(-expected_reward)))
+        return reward, expected_reward, best_expected_reward
+    
+    def choose_action(self, context, agents):
+        rewards = [agent.reward(context) for agent in agents]
+        return np.argmax(rewards)
+    
+    def compute(self):
+        cumulative_regret = torch.zeros((self.T,))
+        current_cqi, current_demand = 0, 0
+        for t in range(self.T):
+            with global_lock_data:
+                current_cqi = global_ue_aggr_data.get_data1_stats()[0]
+                current_demand = global_ue_aggr_data.get_data2_stats()[0]
+            context = torch.tensor([current_cqi, current_demand], dtype=torch.float32).to(self.device)
+            action = self.choose_action(context, self.agents)
+            reward, expected_reward, best_expected_reward = self.evaluate(context, action)
+            self.agents[action].update(context, action, reward)
+            cumulative_regret[t] = cumulative_regret[t-1] + best_expected_reward - expected_reward
+
+        print("Stopping VITS")
+        return cumulative_regret
+
+
+class MACCallback(ric.mac_cb):
+    def __init__(self):
+        ric.mac_cb.__init__(self)
+        self.ind_num = 0
+
+    def handle(self, ind):
+        # save cqi and demand values of each tbs of each ue into aggr_data
+        if len(ind.ue_stats) > 0:
+            ue_stats = ind.ue_stats[0]
+            with global_lock_data:
+                if (self.ind_num > 100):
+                    global_ue_aggr_data.add_data1(ue_stats.cqi, ind.tstamp)
+                    global_ue_aggr_data.add_data2(ue_stats.brs, ind.tstamp)
+            self.ind_num += 1
+
+def run_monitor(stop_event, run_time_sec):
+    # Initialize RIC and connections
+    ric.init()
+    conn = ric.conn_e2_nodes()
+    assert len(conn) > 0, "No connected E2 nodes found."
+    
+    for i in range(0, len(conn)):
+        print(f"Global E2 Node [{i}]: PLMN MCC = {conn[i].id.plmn.mcc}")
+        print(f"Global E2 Node [{i}]: PLMN MNC = {conn[i].id.plmn.mnc}")
+
+    for i in range(0, len(conn)):
+        mac_cb = MACCallback()
+        hndlr = ric.report_mac_sm(conn[i].id, ric.Interval_ms_10, mac_cb)
+        mac_hndlr.append(hndlr)
+    
+    time.sleep(run_time_sec)
+
 parser = argparse.ArgumentParser(description="MAC Control")
 #parser.add_argument('-m', '--mcs', type=int, default=28, help="MCS value (default: 28)")
 #parser.add_argument('-p', '--prb', type=int, default=106, help="PRB value (default: 106)")
@@ -229,37 +327,60 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f'[SYSTEM], device: {device}')
     dimension = 2
+    approx = args.approx
+    hessian_free = args.hessian_free
+    mc_sample = 20 if hessian_free else 1
 
-    # Initialize RIC and connections
-    ric.init()
-    conn = ric.conn_e2_nodes()
-    assert len(conn) > 0, "No connected E2 nodes found."
+    T = args.step
+    if args.algo == 'ts':
+        algo_name = 'TS'
+        algo = ThompsonSampling
+        hyperparameter = lambda eta : (eta,)
+    elif args.algo == 'vits':
+        algo_name = 'VITS'
+        algo = VITS
+        hyperparameter = lambda eta : (eta, float(args.lr), args.nb_pdates, approx, hessian_free, mc_sample)
+    elif args.algo == 'lmcts':
+        algo_name = 'LMC-TS'
+        algo = Langevin
+        hyperparameter = lambda eta : (eta, float(args.lr), 100)
+    else:
+        raise ValueError(args.algo)
+
+    eta_list = [50, 100, 200, 500]
+    eta = args.eta
+    env = vran(dimension, 1, 50, device, args.logistic, algo, hyperparameter(eta), T, args.seed)
+      
+
+    # start monitoring thread
+    run_time_sec = 100
+    stop_event = threading.Event()
+    drl_thread = threading.Thread(target=run_monitor, args=(stop_event, run_time_sec))
+    drl_thread.daemon = True  # Ensures the thread exits when the main program exits
+    drl_thread.start()
     
-    for i in range(0, len(conn)):
-        print(f"Global E2 Node [{i}]: PLMN MCC = {conn[i].id.plmn.mcc}")
-        print(f"Global E2 Node [{i}]: PLMN MNC = {conn[i].id.plmn.mnc}")
+    # start resource allocation
+    df = pd.DataFrame()
+    #for eta in eta_list:
+    row = pd.DataFrame({'seed': args.seed,
+                            'legend': f'{algo_name} - eta: {eta}',
+                            'step': range(T),
+                            'cum_regret': env.compute(algo, hyperparameter(eta), T, args.seed)})
+    df = pd.concat([df, row], ignore_index=True)
+    sns.lineplot(data=df, x='step', y='cum_regret', hue='legend')
+    #plt.show()
+    #plt.savefig()
 
-    for i in range(0, len(conn)):
-        mac_cb = MACCallback()
-        hndlr = ric.report_mac_sm(conn[i].id, ric.Interval_ms_10, mac_cb)
-        mac_hndlr.append(hndlr)
-    time.sleep(1)
-        
-    msg = ric.mac_ctrl_msg_t()
-    msg.ran_conf_len = 2
-    confs = ric.mac_conf_array(2)
-    for i in range(0, msg.ran_conf_len):
-        confs[i] = create_conf(i, mcs, prb, add)
-        print(f"Sending to rnti: {i}, mcs value: {mcs}, prb value: {prb}, add value: {add}")
-        
-    msg.ran_conf = confs
-    ric.control_mac_sm(conn[node_idx].id, msg)
-        
+    # stopping 
+    print("Stopping xApp and cleaning up...")
+    stop_event.set()
+    drl_thread.join()
     for i in range(0, len(mac_hndlr)):
         ric.rm_report_mac_sm(mac_hndlr[i])
-        
+    # Avoid deadlock. ToDo revise architecture
     while ric.try_stop == 0:
         time.sleep(1)
     print("Test finished")
+        
 
 
