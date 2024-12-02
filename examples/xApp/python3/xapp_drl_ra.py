@@ -208,25 +208,27 @@ def create_conf(rnti, mcs, prb, add):
 
 node_idx = 0
 mac_hndlr = []
+parser = argparse.ArgumentParser(description="MAC Control")
+#parser.add_argument('-m', '--mcs', type=int, default=28, help="MCS value (default: 28)")
+#parser.add_argument('-p', '--prb', type=int, default=106, help="PRB value (default: 106)")
+#parser.add_argument('-a', '--add', type=int, default=True, help="Add Configurations? (default: True)")
+parser.add_argument('-s', '--seed', type=int, default=42, help="Random seed for reproducibility (default: 42)")
+parser.add_argument('-g', '--algo', default='vits', help="Choose algorithm (default: vits)")
+parser.add_argument('-r', '--lr', type=float, default=0.01, help="Learning Rate (default: 0.01)")
+parser.add_argument('-l', '--logistic', default=True, action=argparse.BooleanOptionalAction, help="Is logistic or linear? (default: True)")
+parser.add_argument('-t', '--step', type=int, default=1000, help="Total training steps (default: 1000)")
+parser.add_argument('-e', '--eta', type=int, default=500, help="Eta (default: 5000)")
+parser.add_argument('-k', '--nb_pdates', type=int, default=10, help="Number of gradient steps K_t (default: 10)")
+parser.add_argument('-x', '--approx', default=False, action=argparse.BooleanOptionalAction, help="Whether to use approximation (default: False)")
+parser.add_argument('-h', '--hessian_free', default=False, action=argparse.BooleanOptionalAction, help="Is hessian free? (default: False)")
 
 if __name__ == '__main__':
-    # Create the argument parser
-    parser = argparse.ArgumentParser(description="MAC Control")
-    #parser.add_argument('-m', '--mcs', type=int, default=28, help="MCS value (default: 28)")
-    #parser.add_argument('-p', '--prb', type=int, default=106, help="PRB value (default: 106)")
-    #parser.add_argument('-a', '--add', type=int, default=True, help="Add Configurations? (default: True)")
-    parser.add_argument('-s', '--seed', type=int, default=42, help="Random seed for reproducibility (default: 42)")
-    parser.add_argument('-g', '--algo', default='vits', help="Choose algorithm (default: vits)")
-    parser.add_argument('-r', '--lr', type=float, default=0.01, help="Learning Rate (default: 0.01)")
-    parser.add_argument('--logistic', default=True, action=argparse.BooleanOptionalAction)
 
     # Parse the command-line arguments
     args = parser.parse_args()
-
-    # Extract the action value
-    mcs = args.mcs
-    prb = args.prb
-    add = True if args.add else False
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f'[SYSTEM], device: {device}')
+    dimension = 2
 
     # Initialize RIC and connections
     ric.init()
