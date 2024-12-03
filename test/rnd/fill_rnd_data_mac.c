@@ -97,6 +97,7 @@ void fill_mac_ind_data(mac_ind_data_t* ind)
     ind_msg->ue_stats[i].ul_curr_tbs = abs(rand()%mod);
     ind_msg->ue_stats[i].dl_bler = abs(rand()%mod);
     ind_msg->ue_stats[i].ul_bler = abs(rand()%mod);
+    ind_msg->ue_stats[i].pwr = abs(rand()%90);
 
     //ind_msg->ue_stats[i].dl_aggr_prb = lower_dl_aggr_prb + rand()%(upper_dl_aggr_prb - lower_dl_aggr_prb + 1);
     //ind_msg->ue_stats[i].dl_aggr_retx_prb = lower_dl_aggr_retx_prb + rand()%(upper_dl_aggr_retx_prb - lower_dl_aggr_retx_prb + 1);
@@ -105,13 +106,13 @@ void fill_mac_ind_data(mac_ind_data_t* ind)
 
     //ind_msg->ue_stats[i].dl_aggr_sdus = abs(rand()%mod);
     //ind_msg->ue_stats[i].ul_aggr_sdus= abs(rand()%mod);
-    ind_msg->ue_stats[i].wb_cqi= abs(rand()%mod);
+    ind_msg->ue_stats[i].wb_cqi= abs(rand()%15);
     ind_msg->ue_stats[i].dl_mcs1= abs(rand()%mod);
     ind_msg->ue_stats[i].ul_mcs1= abs(rand()%mod);
     ind_msg->ue_stats[i].dl_mcs2= abs(rand()%mod);
     ind_msg->ue_stats[i].ul_mcs2= abs(rand()%mod);
     //ind_msg->ue_stats[i].phr= (rand()%64) - 23; // 41 abs(rand()%mod);
-    ind_msg->ue_stats[i].bsr= abs(rand()%mod);
+    ind_msg->ue_stats[i].bsr= abs(rand()%ind_msg->ue_stats[i].ul_curr_tbs);
     //ind_msg->ue_stats[i].dl_num_harq = numUlHarq;
     //for (uint8_t j = 0; j < numDLHarq; j++)
       //ind_msg->ue_stats[i].dl_harq[j] = abs(rand()%mod);

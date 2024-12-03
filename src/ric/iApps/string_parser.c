@@ -68,6 +68,7 @@ void to_string_mac_ue_stats(mac_ue_stats_impl_t* stats, int64_t tstamp, char* ou
         "bsr=%u,"
         "dl_bler=%f,"
         "ul_bler=%f,"
+        "pwr=%f"
         //"dl_num_harq=%d,"
         //"dl_harq[0]=%u,"
         //"dl_harq[1]=%u,"
@@ -110,6 +111,7 @@ void to_string_mac_ue_stats(mac_ue_stats_impl_t* stats, int64_t tstamp, char* ou
         ,stats->bsr
         ,stats->dl_bler
         ,stats->ul_bler
+        ,stats->pwr
         //,stats->dl_num_harq
         //,stats->dl_harq[0]
         //,stats->dl_harq[1]

@@ -105,6 +105,8 @@ typedef struct
   float dl_bler;
   float ul_bler;
 
+  float pwr;
+
   //uint32_t dl_harq[5];
   //uint32_t ul_harq[5];
   //uint32_t dl_num_harq;

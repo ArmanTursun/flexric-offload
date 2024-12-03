@@ -148,6 +148,8 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
                               .pusch_snr = src->pusch_snr, //: float = -64;
                               .pucch_snr = src->pucch_snr, //: float = -64;
 
+                              .pwr = src->pwr,
+
                               .rnti = src->rnti,
                               //.dl_aggr_prb = src->dl_aggr_prb, 
                               //.ul_aggr_prb = src->ul_aggr_prb,
@@ -244,6 +246,8 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
         ue0->bsr != ue1->bsr ||
         ue0->dl_bler != ue1->dl_bler ||
         ue0->ul_bler != ue1->ul_bler ||
+
+        ue0->pwr != ue1->pwr ||
         //ue0->dl_num_harq != ue1->dl_num_harq ||
         //ue0->dl_harq[0] != ue1->dl_harq[0] ||
         //ue0->dl_harq[1] != ue1->dl_harq[1] ||
