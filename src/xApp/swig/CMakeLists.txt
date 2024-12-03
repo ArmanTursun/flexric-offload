@@ -132,33 +132,33 @@ if(XAPP_TARGET_LANGUAGE STREQUAL "PYTHON_LANG")
 
    add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_BINARY_DIR}/xapp_sdk.py" "${CMAKE_BINARY_DIR}/examples/xApp/python3/xapp_sdk.py" )
 
-   add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
-     "${CMAKE_SOURCE_DIR}/examples/xApp/python3/xapp_drl_ddpg.py"
-     "${CMAKE_BINARY_DIR}/examples/xApp/python3/xapp_drl_ddpg.py" )
+   #add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+   #  "${CMAKE_SOURCE_DIR}/examples/xApp/python3/xapp_drl_ddpg.py"
+   #  "${CMAKE_BINARY_DIR}/examples/xApp/python3/xapp_drl_ddpg.py" )
    
    add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
      "${CMAKE_SOURCE_DIR}/examples/xApp/python3/aggr_data.py"
      "${CMAKE_BINARY_DIR}/examples/xApp/python3/aggr_data.py" )
    
-   add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
-     "${CMAKE_SOURCE_DIR}/examples/xApp/python3/ddpg.py"
-     "${CMAKE_BINARY_DIR}/examples/xApp/python3/ddpg.py" )
+   #add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+   #  "${CMAKE_SOURCE_DIR}/examples/xApp/python3/ddpg.py"
+   #  "${CMAKE_BINARY_DIR}/examples/xApp/python3/ddpg.py" )
 
-   add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
-     "${CMAKE_SOURCE_DIR}/examples/xApp/python3/ou_noise.py"
-     "${CMAKE_BINARY_DIR}/examples/xApp/python3/ou_noise.py" )
+   #add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+   #  "${CMAKE_SOURCE_DIR}/examples/xApp/python3/ou_noise.py"
+   #  "${CMAKE_BINARY_DIR}/examples/xApp/python3/ou_noise.py" )
 
-   add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
-     "${CMAKE_SOURCE_DIR}/examples/xApp/python3/networks/actor.py"
-     "${CMAKE_BINARY_DIR}/examples/xApp/python3/networks/actor.py" )
+   #add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+   #  "${CMAKE_SOURCE_DIR}/examples/xApp/python3/networks/actor.py"
+   #  "${CMAKE_BINARY_DIR}/examples/xApp/python3/networks/actor.py" )
 
-   add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
-     "${CMAKE_SOURCE_DIR}/examples/xApp/python3/networks/critic.py"
-     "${CMAKE_BINARY_DIR}/examples/xApp/python3/networks/critic.py" )
+   #add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+   #  "${CMAKE_SOURCE_DIR}/examples/xApp/python3/networks/critic.py"
+   #  "${CMAKE_BINARY_DIR}/examples/xApp/python3/networks/critic.py" )
    
-   add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
-     "${CMAKE_SOURCE_DIR}/examples/xApp/python3/PPO.py"
-     "${CMAKE_BINARY_DIR}/examples/xApp/python3/PPO.py" )
+   #add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+   #  "${CMAKE_SOURCE_DIR}/examples/xApp/python3/PPO.py"
+   #  "${CMAKE_BINARY_DIR}/examples/xApp/python3/PPO.py" )
      
    add_custom_command(TARGET xapp_sdk POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
      "${CMAKE_SOURCE_DIR}/examples/xApp/python3/xapp_drl_ra.py"
