@@ -43,7 +43,7 @@ void fill_mac_ind_data(mac_ind_data_t* ind)
   mac_ind_msg_t* ind_msg = &ind->msg; 
   
   //int const NUM_UES = abs(rand()%2);
-  int const NUM_UES = 2;
+  int const NUM_UES = 1;
 
   ind_msg->len_ue_stats = NUM_UES;
 
