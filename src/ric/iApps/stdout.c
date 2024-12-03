@@ -40,7 +40,7 @@
 static
 FILE *fp = NULL;
 
-const char* file_path = "log.txt";
+const char* file_path = "../../../log.txt";
 
 
 static 
