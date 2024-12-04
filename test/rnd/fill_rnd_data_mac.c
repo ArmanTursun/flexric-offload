@@ -97,7 +97,7 @@ void fill_mac_ind_data(mac_ind_data_t* ind)
     ind_msg->ue_stats[i].ul_curr_tbs = abs(rand()%mod);
     ind_msg->ue_stats[i].dl_bler = abs(rand()%mod);
     ind_msg->ue_stats[i].ul_bler = abs(rand()%mod);
-    ind_msg->ue_stats[i].pwr = abs(rand()%90);
+    ind_msg->ue_stats[i].pwr = abs(rand()%10 + 90);
 
     //ind_msg->ue_stats[i].dl_aggr_prb = lower_dl_aggr_prb + rand()%(upper_dl_aggr_prb - lower_dl_aggr_prb + 1);
     //ind_msg->ue_stats[i].dl_aggr_retx_prb = lower_dl_aggr_retx_prb + rand()%(upper_dl_aggr_retx_prb - lower_dl_aggr_retx_prb + 1);

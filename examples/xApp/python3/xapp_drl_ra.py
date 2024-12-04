@@ -63,7 +63,8 @@ class VITS(object):
         self.h = h
         self.nb_updates = nb_updates
         self.mean_prior = mean_prior
-        self.mean = torch.tensor(mean_prior, dtype=torch.float32).to(self.device)
+        #self.mean = torch.tensor(mean_prior, dtype=torch.float32).to(self.device)
+        self.mean = mean_prior.clone().detach().to(self.device)
         self.cov_prior_inv = torch.diag(1/(self.eta * torch.diag(cov_prior))).to(self.device)
         self.cov_semi = torch.diag(torch.sqrt(torch.diag(cov_prior))).to(self.device)
         self.cov_semi_inv = torch.diag(1/torch.sqrt(torch.diag(cov_prior))).to(self.device)
@@ -119,7 +120,8 @@ class VITS(object):
         return cov_semi, cov_semi_inv
         
     def update(self, context, action, reward):
-        self.context = torch.cat([self.context, torch.tensor(context, dtype=torch.float32)[None, :].to(self.device)])
+        #self.context = torch.cat([self.context, torch.tensor(context, dtype=torch.float32)[None, :].to(self.device)])
+        self.context = torch.cat([self.context, context.clone().detach().to(self.device).unsqueeze(0)])
         self.rewards = torch.cat([self.rewards, torch.tensor([reward], dtype=torch.float32).to(self.device)])
         h = self.h / (len(self.rewards) * self.eta)
         for _ in range(self.nb_updates):
@@ -182,37 +184,16 @@ class Langevin(object):
             self.theta += - h * gradient + torch.normal(0, np.sqrt(2 * h), size=gradient.shape).to(self.device)
             del gradient
 
-node_idx = 0
 mac_hndlr = []
-conn = None
 
-global_ue_aggr_data = AggrData(20)
+global_ue_aggr_data = AggrData(max_length=5, datasets=['cqi', 'ul_demand', 'ul_throughput', 'power'])
 
 # Global lock to ensure thread-safe access to the global dictionary
 global_lock_data = threading.Lock()
 global_lock_offload = threading.Lock()
 
-def create_conf(rnti, mcs, prb, add):
-    conf = ric.mac_conf_t()
-    conf.isset_pusch_mcs = add
-    conf.pusch_mcs = mcs
-    conf.pusch_prb = prb
-    conf.rnti = rnti
-    return conf
-
-def send_action():
-    msg = ric.mac_ctrl_msg_t()
-    msg.ran_conf_len = 2
-    confs = ric.mac_conf_array(2)
-    for i in range(0, msg.ran_conf_len):
-        confs[i] = create_conf(i, mcs, prb, add)
-        print(f"Sending to rnti: {i}, mcs value: {mcs}, prb value: {prb}, add value: {add}")
-        
-    msg.ran_conf = confs
-    ric.control_mac_sm(conn[node_idx].id, msg)
-
 class vran(object):
-    def __init__(self, dimension, regularisation, nb_iters, device, is_linear, Agent, hyperparameters, T, seed):
+    def __init__(self, conn, dimension, regularisation, nb_iters, device, is_linear, Agent, hyperparameters, T, seed):
         self.dimension = dimension
         self.device = device
         self.is_linear = is_linear
@@ -222,53 +203,90 @@ class vran(object):
         self.hyperparameters = hyperparameters
         self.T = T
         self.seed = seed
+        self.conn = conn
 
         # Generate all possible actions (MCS and PRB)
-        self.action = torch.tensor(self.generate_actions(), dtype=torch.float32).to(self.device)
+        self.actions = torch.tensor(self.generate_actions(), dtype=torch.float32).to(self.device)
 
         # initialize agents
         np.random.seed(self.seed)
         torch.manual_seed(self.seed)
-        mean_prior = torch.mean(self.action, axis=0)
-        cov_prior = torch.diag(torch.var(self.action, axis=0))
-        self.agents = [self.Agent(self.dimension, mean_prior, cov_prior, self.device, self.is_linear, *self.hyperparameters) for _ in range(len(self.action))]
-        print("Initilized VITS agents")
+        self.mean_prior = torch.mean(self.actions, axis=0)
+        self.cov_prior = torch.diag(torch.var(self.actions, axis=0))
+        self.agents = [self.Agent(self.dimension, self.mean_prior, self.cov_prior, self.device, self.is_linear, *self.hyperparameters) for _ in range(len(self.actions))]
+        print("Initilized agents")
     
     def generate_actions(self):
         """
         Generate all possible actions (MCS and PRB combinations).
         :return: Array of actions.
         """
-        MCS_range = range(0, 29)  # MCS values [0, 28]
-        PRB_range = range(1, 107)  # PRB values [1, 273]
+        MCS_range = range(1, 29)  # MCS values [0, 28]
+        PRB_range = range(5, 107)  # PRB values [1, 273]
         return np.array([[mcs, prb] for mcs in MCS_range for prb in PRB_range])
         
-    def evaluate(self, context, action):
-        rewards = self.action @ context
-        expected_reward = rewards[action]
-        best_expected_reward = rewards.max()
-        if self.is_linear:
-            reward = expected_reward + torch.normal(0, 1, size=(1,)).to(self.device)[0]
-        else:
-            reward = torch.bernoulli(1 / (1 + torch.exp(-expected_reward)))
-        return reward, expected_reward, best_expected_reward
+    def cal_reward(self, observe, action):
+        observe_tbs, observe_pwr = observe
+        reward = np.log(1 + observe_tbs) - 1.5 * np.log(1 + observe_pwr / 100.0) #1.5 * energy_cost
+        #if self.is_linear:
+        #    reward= reward + torch.normal(0, 1, size=(1,)).to(self.device)[0]
+        #else:
+        #    reward = torch.bernoulli(1 / (1 + torch.exp(-reward)))
+        return reward
     
     def choose_action(self, context, agents):
         rewards = [agent.reward(context) for agent in agents]
-        return np.argmax(rewards)
+        #print(np.argmax(rewards), max(rewards))
+        #return np.argmax(rewards)
+        return np.argmax(rewards), max(rewards)
+    
+    def create_conf(self, rnti, mcs, prb, add):
+        conf = ric.mac_conf_t()
+        conf.isset_pusch_mcs = add
+        conf.pusch_mcs = mcs
+        conf.pusch_prb = prb
+        conf.rnti = rnti
+        return conf
+
+    def send_action(self, action):
+        msg = ric.mac_ctrl_msg_t()
+        msg.ran_conf_len = 1
+        confs = ric.mac_conf_array(1)
+        mcs, prb = action
+        add = True
+        for i in range(0, msg.ran_conf_len):
+            confs[i] = self.create_conf(i, int(mcs), int(prb), add)
+            #print(f"Sending to rnti: {i}, mcs value: {int(mcs)}, prb value: {int(prb)}, add value: {add}")
+        
+        msg.ran_conf = confs
+        ric.control_mac_sm(self.conn[0].id, msg)
     
     def compute(self):
         cumulative_regret = torch.zeros((self.T,))
-        current_cqi, current_demand = 0, 0
+        context_cqi, context_demand = 0, 0
+        observe_tbs, observe_pwr = 0, 0
+        best_expected_reward = 0
+        context = torch.tensor([context_cqi, context_demand], dtype=torch.float32).to(self.device)
+        action = torch.tensor(0, dtype=torch.float32).to(self.device)
         for t in range(self.T):
             with global_lock_data:
-                current_cqi = global_ue_aggr_data.get_data1_stats()[0]
-                current_demand = global_ue_aggr_data.get_data2_stats()[0]
-            context = torch.tensor([current_cqi, current_demand], dtype=torch.float32).to(self.device)
-            action = self.choose_action(context, self.agents)
-            reward, expected_reward, best_expected_reward = self.evaluate(context, action)
-            self.agents[action].update(context, action, reward)
-            cumulative_regret[t] = cumulative_regret[t-1] + best_expected_reward - expected_reward
+                context_cqi = global_ue_aggr_data.get_stats('cqi')['mean']
+                context_demand = global_ue_aggr_data.get_stats('ul_demand')['mean']
+                observe_tbs = global_ue_aggr_data.get_stats('ul_throughput')['mean']
+                observe_pwr = global_ue_aggr_data.get_stats('power')['mean']
+                #print('context: ' ,context_cqi, context_demand, observe_tbs, observe_pwr)
+            if t > 0:
+                reward = self.cal_reward((observe_tbs, observe_pwr), action)
+                print(context, action, reward, best_expected_reward)
+                self.agents[action].update(context, action, reward)
+                cumulative_regret[t] = cumulative_regret[t-1] + best_expected_reward - reward
+            context = torch.tensor([context_cqi, context_demand], dtype=torch.float32).to(self.device)
+            action, best_expected_reward = self.choose_action(context, self.agents)
+            #print('action: ', self.actions[action].cpu().numpy(), type(self.actions[action].cpu().numpy()))
+            #break
+            self.send_action(self.actions[action].cpu().numpy())
+            time.sleep(0.05)
+            
 
         print("Stopping VITS")
         return cumulative_regret
@@ -284,27 +302,30 @@ class MACCallback(ric.mac_cb):
         if len(ind.ue_stats) > 0:
             ue_stats = ind.ue_stats[0]
             with global_lock_data:
-                if (self.ind_num > 100):
-                    global_ue_aggr_data.add_data1(ue_stats.cqi, ind.tstamp)
-                    global_ue_aggr_data.add_data2(ue_stats.brs, ind.tstamp)
-            self.ind_num += 1
+                #if (self.ind_num > 100):
+                global_ue_aggr_data.add_data('cqi', ue_stats.wb_cqi, ind.tstamp)
+                global_ue_aggr_data.add_data('ul_demand', ue_stats.bsr, ind.tstamp)
+                global_ue_aggr_data.add_data('ul_throughput', ue_stats.ul_curr_tbs/ue_stats.bsr, ind.tstamp)
+                global_ue_aggr_data.add_data('power', ue_stats.pwr, ind.tstamp)
+            #self.ind_num += 1
 
-def run_monitor(stop_event, run_time_sec):
-    # Initialize RIC and connections
-    ric.init()
-    conn = ric.conn_e2_nodes()
-    assert len(conn) > 0, "No connected E2 nodes found."
-    
+def run_monitor(stop_event, conn, run_time_sec):
     for i in range(0, len(conn)):
         print(f"Global E2 Node [{i}]: PLMN MCC = {conn[i].id.plmn.mcc}")
         print(f"Global E2 Node [{i}]: PLMN MNC = {conn[i].id.plmn.mnc}")
 
     for i in range(0, len(conn)):
         mac_cb = MACCallback()
-        hndlr = ric.report_mac_sm(conn[i].id, ric.Interval_ms_10, mac_cb)
+        hndlr = ric.report_mac_sm(conn[i].id, ric.Interval_ms_1, mac_cb)
         mac_hndlr.append(hndlr)
+        #time.sleep(1)
     
-    time.sleep(run_time_sec)
+    #time.sleep(run_time_sec)
+    # Wait for the stop_event or timeout
+    if stop_event.wait(timeout=run_time_sec):
+        print("Stop event received. Exiting monitor.")
+    else:
+        print("Timeout elapsed. Exiting monitor.")
 
 parser = argparse.ArgumentParser(description="MAC Control")
 #parser.add_argument('-m', '--mcs', type=int, default=28, help="MCS value (default: 28)")
@@ -315,10 +336,10 @@ parser.add_argument('-g', '--algo', default='vits', help="Choose algorithm (defa
 parser.add_argument('-r', '--lr', type=float, default=0.01, help="Learning Rate (default: 0.01)")
 parser.add_argument('-l', '--logistic', default=True, action=argparse.BooleanOptionalAction, help="Is logistic or linear? (default: True)")
 parser.add_argument('-t', '--step', type=int, default=1000, help="Total training steps (default: 1000)")
-parser.add_argument('-e', '--eta', type=int, default=500, help="Eta (default: 5000)")
+parser.add_argument('-e', '--eta', type=int, default=500, help="Eta (default: 500)")
 parser.add_argument('-k', '--nb_pdates', type=int, default=10, help="Number of gradient steps K_t (default: 10)")
 parser.add_argument('-x', '--approx', default=False, action=argparse.BooleanOptionalAction, help="Whether to use approximation (default: False)")
-parser.add_argument('-h', '--hessian_free', default=False, action=argparse.BooleanOptionalAction, help="Is hessian free? (default: False)")
+parser.add_argument('-f', '--hessian_free', default=False, action=argparse.BooleanOptionalAction, help="Is hessian free? (default: False)")
 
 if __name__ == '__main__':
 
@@ -330,6 +351,11 @@ if __name__ == '__main__':
     approx = args.approx
     hessian_free = args.hessian_free
     mc_sample = 20 if hessian_free else 1
+
+    # Initialize RIC and connections
+    ric.init()
+    conn = ric.conn_e2_nodes()
+    assert len(conn) > 0, "No connected E2 nodes found."
 
     T = args.step
     if args.algo == 'ts':
@@ -349,15 +375,16 @@ if __name__ == '__main__':
 
     eta_list = [50, 100, 200, 500]
     eta = args.eta
-    env = vran(dimension, 1, 50, device, args.logistic, algo, hyperparameter(eta), T, args.seed)
-      
+    env = vran(conn, dimension, 1, 50, device, args.logistic, algo, hyperparameter(eta), T, args.seed)
 
     # start monitoring thread
     run_time_sec = 100
     stop_event = threading.Event()
-    drl_thread = threading.Thread(target=run_monitor, args=(stop_event, run_time_sec))
+    drl_thread = threading.Thread(target=run_monitor, args=(stop_event, conn, run_time_sec))
     drl_thread.daemon = True  # Ensures the thread exits when the main program exits
     drl_thread.start()
+
+    time.sleep(1)
     
     # start resource allocation
     df = pd.DataFrame()
@@ -365,10 +392,10 @@ if __name__ == '__main__':
     row = pd.DataFrame({'seed': args.seed,
                             'legend': f'{algo_name} - eta: {eta}',
                             'step': range(T),
-                            'cum_regret': env.compute(algo, hyperparameter(eta), T, args.seed)})
+                            'cum_regret': env.compute()})
     df = pd.concat([df, row], ignore_index=True)
     sns.lineplot(data=df, x='step', y='cum_regret', hue='legend')
-    #plt.show()
+    plt.show()
     #plt.savefig()
 
     # stopping 
