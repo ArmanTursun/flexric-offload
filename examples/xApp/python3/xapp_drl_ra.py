@@ -73,7 +73,7 @@ class VITS(object):
     def get_config(self):
         return {'eta': self.eta, 'dimension': self.dimension, 'h': self.h,
                 'nb_updates': self.nb_updates, 'algorithm': 'VITS'}
-
+   
     def sample_posterior(self):
         eps = torch.normal(0, 1, size=(self.dimension,)).to(self.device)
         theta = self.mean + self.cov_semi @ eps
@@ -186,7 +186,7 @@ class Langevin(object):
 
 mac_hndlr = []
 
-global_ue_aggr_data = AggrData(max_length=5, datasets=['cqi', 'ul_demand', 'ul_throughput', 'power'])
+global_ue_aggr_data = AggrData(max_length=20, datasets=['cqi', 'ul_demand', 'ul_throughput', 'power'])
 
 # Global lock to ensure thread-safe access to the global dictionary
 global_lock_data = threading.Lock()
@@ -221,24 +221,27 @@ class vran(object):
         Generate all possible actions (MCS and PRB combinations).
         :return: Array of actions.
         """
-        MCS_range = range(1, 29)  # MCS values [0, 28]
-        PRB_range = range(5, 107)  # PRB values [1, 273]
+        MCS_range = range(10, 21)  # MCS values [0, 28]
+        PRB_range = range(100, 102)  # PRB values [1, 273]
         return np.array([[mcs, prb] for mcs in MCS_range for prb in PRB_range])
         
-    def cal_reward(self, observe, action):
-        observe_tbs, observe_pwr = observe
-        reward = np.log(1 + observe_tbs) - 1.5 * np.log(1 + observe_pwr / 100.0) #1.5 * energy_cost
-        #if self.is_linear:
-        #    reward= reward + torch.normal(0, 1, size=(1,)).to(self.device)[0]
-        #else:
-        #    reward = torch.bernoulli(1 / (1 + torch.exp(-reward)))
+    def cal_reward(self, observe):
+        observe_tbs, context_demand, observe_pwr = observe
+        reward = np.log(1 + observe_tbs / context_demand) - 1.5 * np.log(1 + observe_pwr / 100.0) #1.5 * energy_cost
+        if self.is_linear:
+            reward= reward + torch.normal(0, 1, size=(1,)).to(self.device)[0]
+        else:
+            reward = torch.bernoulli(1 / (1 + torch.exp(-reward)))
         return reward
     
     def choose_action(self, context, agents):
         rewards = [agent.reward(context) for agent in agents]
+        print(rewards)
+        selected_action = np.argmax(rewards)
+        best_expected_reward = max(rewards)
         #print(np.argmax(rewards), max(rewards))
         #return np.argmax(rewards)
-        return np.argmax(rewards), max(rewards)
+        return selected_action , best_expected_reward
     
     def create_conf(self, rnti, mcs, prb, add):
         conf = ric.mac_conf_t()
@@ -274,9 +277,9 @@ class vran(object):
                 context_demand = global_ue_aggr_data.get_stats('ul_demand')['mean']
                 observe_tbs = global_ue_aggr_data.get_stats('ul_throughput')['mean']
                 observe_pwr = global_ue_aggr_data.get_stats('power')['mean']
-                #print('context: ' ,context_cqi, context_demand, observe_tbs, observe_pwr)
+                print('context: ' ,context_cqi, context_demand, observe_tbs, observe_pwr)
             if t > 0:
-                reward = self.cal_reward((observe_tbs, observe_pwr), action)
+                reward = self.cal_reward((observe_tbs, context_demand, observe_pwr))
                 print(context, action, reward, best_expected_reward)
                 self.agents[action].update(context, action, reward)
                 cumulative_regret[t] = cumulative_regret[t-1] + best_expected_reward - reward
@@ -303,9 +306,9 @@ class MACCallback(ric.mac_cb):
             ue_stats = ind.ue_stats[0]
             with global_lock_data:
                 #if (self.ind_num > 100):
-                global_ue_aggr_data.add_data('cqi', ue_stats.wb_cqi, ind.tstamp)
+                global_ue_aggr_data.add_data('cqi', 1, ind.tstamp) # ue_stats.wb_cqi
+                global_ue_aggr_data.add_data('ul_throughput', ue_stats.ul_curr_tbs, ind.tstamp)
                 global_ue_aggr_data.add_data('ul_demand', ue_stats.bsr, ind.tstamp)
-                global_ue_aggr_data.add_data('ul_throughput', ue_stats.ul_curr_tbs/ue_stats.bsr, ind.tstamp)
                 global_ue_aggr_data.add_data('power', ue_stats.pwr, ind.tstamp)
             #self.ind_num += 1
 
@@ -395,8 +398,9 @@ if __name__ == '__main__':
                             'cum_regret': env.compute()})
     df = pd.concat([df, row], ignore_index=True)
     sns.lineplot(data=df, x='step', y='cum_regret', hue='legend')
+    plt.savefig('/home/nakaolab/ra/result.png')
     plt.show()
-    #plt.savefig()
+    
 
     # stopping 
     print("Stopping xApp and cleaning up...")
