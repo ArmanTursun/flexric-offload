@@ -63,8 +63,8 @@ class VITS(object):
         self.h = h
         self.nb_updates = nb_updates
         self.mean_prior = mean_prior
-        #self.mean = torch.tensor(mean_prior, dtype=torch.float32).to(self.device)
-        self.mean = mean_prior.clone().detach().to(self.device)
+        self.mean = torch.tensor(mean_prior, dtype=torch.float32).to(self.device)
+        #self.mean = mean_prior.clone().detach().to(self.device)
         self.cov_prior_inv = torch.diag(1/(self.eta * torch.diag(cov_prior))).to(self.device)
         self.cov_semi = torch.diag(torch.sqrt(torch.diag(cov_prior))).to(self.device)
         self.cov_semi_inv = torch.diag(1/torch.sqrt(torch.diag(cov_prior))).to(self.device)
@@ -78,6 +78,15 @@ class VITS(object):
         eps = torch.normal(0, 1, size=(self.dimension,)).to(self.device)
         theta = self.mean + self.cov_semi @ eps
         return theta
+
+    # def sample_posterior(self):
+    #     eps = torch.normal(0, 1, size=(self.dimension,)).to(self.device)
+    #     theta = self.mean + self.cov_semi @ eps
+    #     if torch.isnan(theta).any():
+    #         print("NaN detected in sampled theta. Resetting theta to mean.")
+    #         theta = self.mean.clone()
+    #     return theta
+
         
     def reward(self, context):
         theta = self.sample_posterior()
@@ -110,6 +119,30 @@ class VITS(object):
                 hessian_matrices[idx, :, :] = hessian(self.potential, theta)
             del theta
         return gradients.mean(0), hessian_matrices.mean(0)
+
+    # def compute_gradient_hessian(self):
+    #     gradients = torch.zeros((self.mc_samples, self.dimension)).to(self.device)
+    #     hessian_matrices = torch.zeros((self.mc_samples, self.dimension, self.dimension)).to(self.device)
+    #     for idx in range(self.mc_samples):
+    #         theta = self.sample_posterior()
+    #         theta.requires_grad = True
+    #         current_grad = grad(self.potential(theta), theta)[0]
+    #         gradients[idx, :] = current_grad
+    #         if self.hessian_free:
+    #             theta.requires_grad = False
+    #             hessian_matrices[idx, :, :] = ((self.cov_semi_inv.T @ self.cov_semi_inv) @ (theta - self.mean)[:, None] @ current_grad[None, :])
+    #         else:
+    #             hessian_matrices[idx, :, :] = hessian(self.potential, theta)
+    #         del theta
+
+    #     # Check for NaNs
+    #     if torch.isnan(gradients).any() or torch.isnan(hessian_matrices).any():
+    #         print("NaN detected in gradients or hessian_matrices. Resetting to zeros.")
+    #         gradients = torch.zeros_like(gradients)
+    #         hessian_matrices = torch.zeros_like(hessian_matrices)
+
+    #     return gradients.mean(0), hessian_matrices.mean(0)
+
     
     def update_cov(self, h, hessian_matrix):
         cov_semi = (torch.eye(self.dimension).to(self.device) - h * hessian_matrix) @ self.cov_semi + h * self.cov_semi_inv.T
@@ -118,16 +151,44 @@ class VITS(object):
         else:
             cov_semi_inv = torch.linalg.pinv(cov_semi)
         return cov_semi, cov_semi_inv
-        
+
+    # def update_cov(self, h, hessian_matrix):
+    #     # Handle invalid hessian_matrix
+    #     if torch.isnan(hessian_matrix).any() or torch.isinf(hessian_matrix).any():
+    #         print("Invalid hessian_matrix detected. Resetting to zeros.")
+    #         hessian_matrix = torch.zeros_like(hessian_matrix)
+
+    #     # Update cov_semi with regularization
+    #     cov_semi = (torch.eye(self.dimension).to(self.device) - h * hessian_matrix) @ self.cov_semi + h * self.cov_semi_inv.T
+    #     cov_semi += torch.eye(self.dimension).to(self.device) * 1e-6  # Regularization
+
+    #     # Compute inverse or fallback to identity
+    #     try:
+    #         cov_semi_inv = torch.linalg.pinv(cov_semi)
+    #     except RuntimeError as e:
+    #         print(f"Matrix inversion error: {e}. Resetting cov_semi_inv to identity.")
+    #         cov_semi_inv = torch.eye(self.dimension).to(self.device)
+
+    #     # Ensure no NaNs in outputs
+    #     assert not torch.isnan(cov_semi).any(), "cov_semi contains NaN"
+    #     assert not torch.isnan(cov_semi_inv).any(), "cov_semi_inv contains NaN"
+
+    #     return cov_semi, cov_semi_inv
+
+
+
+
     def update(self, context, action, reward):
-        #self.context = torch.cat([self.context, torch.tensor(context, dtype=torch.float32)[None, :].to(self.device)])
-        self.context = torch.cat([self.context, context.clone().detach().to(self.device).unsqueeze(0)])
+        self.context = torch.cat([self.context, torch.tensor(context, dtype=torch.float32)[None, :].to(self.device)])
+        #self.context = torch.cat([self.context, context.clone().detach().to(self.device).unsqueeze(0)])
         self.rewards = torch.cat([self.rewards, torch.tensor([reward], dtype=torch.float32).to(self.device)])
         h = self.h / (len(self.rewards) * self.eta)
         for _ in range(self.nb_updates):
             gradient, hessian_matrix = self.compute_gradient_hessian()
             self.mean -= h * gradient
             self.cov_semi, self.cov_semi_inv = self.update_cov(h, hessian_matrix)
+            assert not torch.isnan(self.cov_semi).any(), "cov_semi contains NaN"
+            assert not torch.isnan(self.cov_semi_inv).any(), "cov_semi_inv contains NaN"
             del gradient, hessian_matrix
 
 
@@ -213,6 +274,7 @@ class vran(object):
         torch.manual_seed(self.seed)
         self.mean_prior = torch.mean(self.actions, axis=0)
         self.cov_prior = torch.diag(torch.var(self.actions, axis=0))
+        #self.cov_prior += torch.eye(self.dimension) * 1e-6  # Add small value to diagonal
         self.agents = [self.Agent(self.dimension, self.mean_prior, self.cov_prior, self.device, self.is_linear, *self.hyperparameters) for _ in range(len(self.actions))]
         print("Initilized agents")
     
@@ -221,26 +283,25 @@ class vran(object):
         Generate all possible actions (MCS and PRB combinations).
         :return: Array of actions.
         """
-        MCS_range = range(10, 21)  # MCS values [0, 28]
-        PRB_range = range(100, 102)  # PRB values [1, 273]
+        MCS_range = range(0, 29, 2)  # MCS values [0, 28]
+        PRB_range = range(5, 107, 5)  # PRB values [1, 273]
         return np.array([[mcs, prb] for mcs in MCS_range for prb in PRB_range])
         
     def cal_reward(self, observe):
         observe_tbs, context_demand, observe_pwr = observe
-        reward = np.log(1 + observe_tbs / context_demand) - 1.5 * np.log(1 + observe_pwr / 100.0) #1.5 * energy_cost
+        reward = np.log(1 + observe_tbs / context_demand) - 1.5 * np.log(1 + observe_pwr) #1.5 * energy_cost
         if self.is_linear:
             reward= reward + torch.normal(0, 1, size=(1,)).to(self.device)[0]
         else:
             reward = torch.bernoulli(1 / (1 + torch.exp(-reward)))
+
         return reward
     
     def choose_action(self, context, agents):
+        context = torch.tensor(context, dtype=torch.float32).to(self.device)
         rewards = [agent.reward(context) for agent in agents]
-        print(rewards)
         selected_action = np.argmax(rewards)
         best_expected_reward = max(rewards)
-        #print(np.argmax(rewards), max(rewards))
-        #return np.argmax(rewards)
         return selected_action , best_expected_reward
     
     def create_conf(self, rnti, mcs, prb, add):
@@ -264,12 +325,22 @@ class vran(object):
         msg.ran_conf = confs
         ric.control_mac_sm(self.conn[0].id, msg)
     
+    def min_max_scale(self, value, min_val, max_val):
+        return (value - min_val) / (max_val - min_val)
+
+    def scale_features(self, cqi, demand, tbs, power):
+        scaled_cqi = self.min_max_scale(cqi, 0, 15)  # Scale CQI to [0, 1]
+        scaled_demand = self.min_max_scale(demand, 0, 100)  # Scale Demand to [0, 1]
+        scaled_tbs = self.min_max_scale(tbs, 0, 100)  # Scale TBS to [0, 1]
+        scaled_power = self.min_max_scale(power, 90, 100)  # Scale Power to [0, 1]
+        return scaled_cqi, scaled_demand, scaled_tbs, scaled_power
+
+    
     def compute(self):
         cumulative_regret = torch.zeros((self.T,))
         context_cqi, context_demand = 0, 0
         observe_tbs, observe_pwr = 0, 0
         best_expected_reward = 0
-        context = torch.tensor([context_cqi, context_demand], dtype=torch.float32).to(self.device)
         action = torch.tensor(0, dtype=torch.float32).to(self.device)
         for t in range(self.T):
             with global_lock_data:
@@ -277,18 +348,16 @@ class vran(object):
                 context_demand = global_ue_aggr_data.get_stats('ul_demand')['mean']
                 observe_tbs = global_ue_aggr_data.get_stats('ul_throughput')['mean']
                 observe_pwr = global_ue_aggr_data.get_stats('power')['mean']
-                print('context: ' ,context_cqi, context_demand, observe_tbs, observe_pwr)
+                context_cqi, context_demand, observe_tbs, observe_pwr = self.scale_features(context_cqi, context_demand, observe_tbs, observe_pwr)
             if t > 0:
                 reward = self.cal_reward((observe_tbs, context_demand, observe_pwr))
                 print(context, action, reward, best_expected_reward)
                 self.agents[action].update(context, action, reward)
                 cumulative_regret[t] = cumulative_regret[t-1] + best_expected_reward - reward
-            context = torch.tensor([context_cqi, context_demand], dtype=torch.float32).to(self.device)
+            context = [context_cqi, context_demand]
             action, best_expected_reward = self.choose_action(context, self.agents)
-            #print('action: ', self.actions[action].cpu().numpy(), type(self.actions[action].cpu().numpy()))
-            #break
             self.send_action(self.actions[action].cpu().numpy())
-            time.sleep(0.05)
+            time.sleep(0.04)
             
 
         print("Stopping VITS")
@@ -381,7 +450,7 @@ if __name__ == '__main__':
     env = vran(conn, dimension, 1, 50, device, args.logistic, algo, hyperparameter(eta), T, args.seed)
 
     # start monitoring thread
-    run_time_sec = 100
+    run_time_sec = 1000
     stop_event = threading.Event()
     drl_thread = threading.Thread(target=run_monitor, args=(stop_event, conn, run_time_sec))
     drl_thread.daemon = True  # Ensures the thread exits when the main program exits
