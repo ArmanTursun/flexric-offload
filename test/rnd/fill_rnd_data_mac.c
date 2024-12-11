@@ -38,7 +38,7 @@ void fill_mac_ind_data(mac_ind_data_t* ind)
   assert(ind != NULL);
   srand(time(0));
 
-  int const mod = 1024;
+  int const mod = 100;
 
   mac_ind_msg_t* ind_msg = &ind->msg; 
   
@@ -94,7 +94,7 @@ void fill_mac_ind_data(mac_ind_data_t* ind)
     ind_msg->ue_stats[i].frame = frame;
     ind_msg->ue_stats[i].slot = slot;
     ind_msg->ue_stats[i].dl_curr_tbs = abs(rand()%mod);
-    ind_msg->ue_stats[i].ul_curr_tbs = abs(rand()%mod);
+    ind_msg->ue_stats[i].ul_curr_tbs = abs(rand()%mod) + 1;
     ind_msg->ue_stats[i].dl_bler = abs(rand()%mod);
     ind_msg->ue_stats[i].ul_bler = abs(rand()%mod);
     ind_msg->ue_stats[i].pwr = abs(rand()%10 + 90);
@@ -106,13 +106,13 @@ void fill_mac_ind_data(mac_ind_data_t* ind)
 
     //ind_msg->ue_stats[i].dl_aggr_sdus = abs(rand()%mod);
     //ind_msg->ue_stats[i].ul_aggr_sdus= abs(rand()%mod);
-    ind_msg->ue_stats[i].wb_cqi= abs(rand()%15);
+    ind_msg->ue_stats[i].wb_cqi= abs(rand()%16);
     ind_msg->ue_stats[i].dl_mcs1= abs(rand()%mod);
     ind_msg->ue_stats[i].ul_mcs1= abs(rand()%mod);
     ind_msg->ue_stats[i].dl_mcs2= abs(rand()%mod);
     ind_msg->ue_stats[i].ul_mcs2= abs(rand()%mod);
     //ind_msg->ue_stats[i].phr= (rand()%64) - 23; // 41 abs(rand()%mod);
-    ind_msg->ue_stats[i].bsr= abs(rand()%ind_msg->ue_stats[i].ul_curr_tbs);
+    ind_msg->ue_stats[i].bsr= abs(rand()%ind_msg->ue_stats[i].ul_curr_tbs) + 1;
     //ind_msg->ue_stats[i].dl_num_harq = numUlHarq;
     //for (uint8_t j = 0; j < numDLHarq; j++)
       //ind_msg->ue_stats[i].dl_harq[j] = abs(rand()%mod);
