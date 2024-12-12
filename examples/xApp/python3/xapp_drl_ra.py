@@ -247,14 +247,14 @@ class Langevin(object):
 
 mac_hndlr = []
 
-global_ue_aggr_data = AggrData(max_length=20, datasets=['cqi', 'ul_demand', 'ul_throughput', 'power'])
+global_ue_aggr_data = AggrData(max_length=5, datasets=['cqi', 'ul_demand', 'ul_throughput', 'power'])
 
 # Global lock to ensure thread-safe access to the global dictionary
 global_lock_data = threading.Lock()
 global_lock_offload = threading.Lock()
 
 class vran(object):
-    def __init__(self, conn, dimension, regularisation, nb_iters, device, is_linear, Agent, hyperparameters, T, seed):
+    def __init__(self, conn, dimension, regularisation, nb_iters, device, is_linear, Agent, hyperparameters, T, seed, mcs_low, mcs_high, mcs_step, prb_low, prb_high, prb_step):
         self.dimension = dimension
         self.device = device
         self.is_linear = is_linear
@@ -265,6 +265,12 @@ class vran(object):
         self.T = T
         self.seed = seed
         self.conn = conn
+        self.mcs_low = mcs_low
+        self.mcs_high = mcs_high
+        self.mcs_step = mcs_step
+        self.prb_low = prb_low
+        self.prb_high = prb_high
+        self.prb_step = prb_step
 
         # Generate all possible actions (MCS and PRB)
         self.actions = torch.tensor(self.generate_actions(), dtype=torch.float32).to(self.device)
@@ -283,17 +289,17 @@ class vran(object):
         Generate all possible actions (MCS and PRB combinations).
         :return: Array of actions.
         """
-        MCS_range = range(0, 29, 2)  # MCS values [0, 28]
-        PRB_range = range(5, 107, 5)  # PRB values [1, 273]
+        MCS_range = range(self.mcs_low, self.mcs_high, self.mcs_step)  # MCS values [0, 28]
+        PRB_range = range(self.prb_low, self.prb_high, self.prb_step)  # PRB values [1, 273]
         return np.array([[mcs, prb] for mcs in MCS_range for prb in PRB_range])
         
     def cal_reward(self, observe):
         observe_tbs, context_demand, observe_pwr = observe
         reward = np.log(1 + observe_tbs / context_demand) - 1.5 * np.log(1 + observe_pwr) #1.5 * energy_cost
-        if self.is_linear:
-            reward= reward + torch.normal(0, 1, size=(1,)).to(self.device)[0]
-        else:
-            reward = torch.bernoulli(1 / (1 + torch.exp(-reward)))
+        #if self.is_linear:
+        #    reward= reward + torch.normal(0, 1, size=(1,)).to(self.device)[0]
+        #else:
+        #    reward = torch.bernoulli(1 / (1 + torch.exp(-reward)))
 
         return reward
     
@@ -330,9 +336,9 @@ class vran(object):
 
     def scale_features(self, cqi, demand, tbs, power):
         scaled_cqi = self.min_max_scale(cqi, 0, 15)  # Scale CQI to [0, 1]
-        scaled_demand = self.min_max_scale(demand, 0, 100)  # Scale Demand to [0, 1]
-        scaled_tbs = self.min_max_scale(tbs, 0, 100)  # Scale TBS to [0, 1]
-        scaled_power = self.min_max_scale(power, 90, 100)  # Scale Power to [0, 1]
+        scaled_demand = self.min_max_scale(demand, 0, 3000)  # Scale Demand to [0, 1]
+        scaled_tbs = self.min_max_scale(tbs, 0, 3000)  # Scale TBS to [0, 1]
+        scaled_power = self.min_max_scale(power, 0, 50)  # Scale Power to [0, 1]
         return scaled_cqi, scaled_demand, scaled_tbs, scaled_power
 
     
@@ -357,7 +363,7 @@ class vran(object):
             context = [context_cqi, context_demand]
             action, best_expected_reward = self.choose_action(context, self.agents)
             self.send_action(self.actions[action].cpu().numpy())
-            time.sleep(0.04)
+            #time.sleep(0.04)
             
 
         print("Stopping VITS")
@@ -381,14 +387,23 @@ class MACCallback(ric.mac_cb):
                 global_ue_aggr_data.add_data('power', ue_stats.pwr, ind.tstamp)
             #self.ind_num += 1
 
-def run_monitor(stop_event, conn, run_time_sec):
+def run_monitor(stop_event, conn, run_time_sec, frequency):
     for i in range(0, len(conn)):
         print(f"Global E2 Node [{i}]: PLMN MCC = {conn[i].id.plmn.mcc}")
         print(f"Global E2 Node [{i}]: PLMN MNC = {conn[i].id.plmn.mnc}")
 
+    if frequency == 1:
+        freq = ric.Interval_ms_1
+    elif frequency == 2:
+        freq = ric.Interval_ms_2
+    elif frequency == 5:
+        freq = ric.Interval_ms_5
+    else:
+        freq = ric.Interval_ms_10
+
     for i in range(0, len(conn)):
         mac_cb = MACCallback()
-        hndlr = ric.report_mac_sm(conn[i].id, ric.Interval_ms_1, mac_cb)
+        hndlr = ric.report_mac_sm(conn[i].id, freq, mac_cb)
         mac_hndlr.append(hndlr)
         #time.sleep(1)
     
@@ -409,9 +424,17 @@ parser.add_argument('-r', '--lr', type=float, default=0.01, help="Learning Rate 
 parser.add_argument('-l', '--logistic', default=True, action=argparse.BooleanOptionalAction, help="Is logistic or linear? (default: True)")
 parser.add_argument('-t', '--step', type=int, default=1000, help="Total training steps (default: 1000)")
 parser.add_argument('-e', '--eta', type=int, default=500, help="Eta (default: 500)")
-parser.add_argument('-k', '--nb_pdates', type=int, default=10, help="Number of gradient steps K_t (default: 10)")
+parser.add_argument('-k', '--nb_updates', type=int, default=10, help="Number of gradient steps K_t (default: 10)")
 parser.add_argument('-x', '--approx', default=False, action=argparse.BooleanOptionalAction, help="Whether to use approximation (default: False)")
 parser.add_argument('-f', '--hessian_free', default=False, action=argparse.BooleanOptionalAction, help="Is hessian free? (default: False)")
+parser.add_argument('--mcs_low', type=int, default=9, help="lower bound of mcs (default: 9)")
+parser.add_argument('--mcs_high', type=int, default=29, help="upper bound of mcs (default: 29)")
+parser.add_argument('--mcs_step', type=int, default=2, help="step of mcs values (default: 2)")
+parser.add_argument('--prb_low', type=int, default=5, help="lower bound of prb (default: 5)")
+parser.add_argument('--prb_high', type=int, default=107, help="upper bound of prb (default: 107)")
+parser.add_argument('--prb_step', type=int, default=5, help="step of prb values (default: 5)")
+parser.add_argument('--report_time', type=int, default=1, help="E2 reports time frequency (default: 1)")
+parser.add_argument('--rounds', type=int, default=10, help="Total rounds that test runs (default: 10)")
 
 if __name__ == '__main__':
 
@@ -437,7 +460,7 @@ if __name__ == '__main__':
     elif args.algo == 'vits':
         algo_name = 'VITS'
         algo = VITS
-        hyperparameter = lambda eta : (eta, float(args.lr), args.nb_pdates, approx, hessian_free, mc_sample)
+        hyperparameter = lambda eta : (eta, float(args.lr), args.nb_updates, approx, hessian_free, mc_sample)
     elif args.algo == 'lmcts':
         algo_name = 'LMC-TS'
         algo = Langevin
@@ -447,12 +470,12 @@ if __name__ == '__main__':
 
     eta_list = [50, 100, 200, 500]
     eta = args.eta
-    env = vran(conn, dimension, 1, 50, device, args.logistic, algo, hyperparameter(eta), T, args.seed)
+    env = vran(conn, dimension, 1, 50, device, args.logistic, algo, hyperparameter(eta), T, args.seed, args.mcs_low, args.mcs_high, args.mcs_step, args.prb_low, args.prb_high, args.prb_step)
 
     # start monitoring thread
     run_time_sec = 1000
     stop_event = threading.Event()
-    drl_thread = threading.Thread(target=run_monitor, args=(stop_event, conn, run_time_sec))
+    drl_thread = threading.Thread(target=run_monitor, args=(stop_event, conn, run_time_sec, args.report_time))
     drl_thread.daemon = True  # Ensures the thread exits when the main program exits
     drl_thread.start()
 
@@ -460,12 +483,13 @@ if __name__ == '__main__':
     
     # start resource allocation
     df = pd.DataFrame()
-    #for eta in eta_list:
-    row = pd.DataFrame({'seed': args.seed,
+    for _ in range(args.rounds):
+        row = pd.DataFrame({'seed': args.seed,
                             'legend': f'{algo_name} - eta: {eta}',
                             'step': range(T),
                             'cum_regret': env.compute()})
-    df = pd.concat([df, row], ignore_index=True)
+        df = pd.concat([df, row], ignore_index=True)
+        df.to_csv('/home/nakaolab/ra/vits_result.csv', index=False)
     sns.lineplot(data=df, x='step', y='cum_regret', hue='legend')
     plt.savefig('/home/nakaolab/ra/result.png')
     plt.show()
