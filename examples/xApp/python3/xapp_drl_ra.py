@@ -336,18 +336,20 @@ class vran(object):
 
     def scale_features(self, cqi, demand, tbs, power):
         scaled_cqi = self.min_max_scale(cqi, 0, 15)  # Scale CQI to [0, 1]
-        scaled_demand = self.min_max_scale(demand, 0, 3000)  # Scale Demand to [0, 1]
-        scaled_tbs = self.min_max_scale(tbs, 0, 3000)  # Scale TBS to [0, 1]
+        scaled_demand = self.min_max_scale(demand, 0, 6000)  # Scale Demand to [0, 1]
+        scaled_tbs = self.min_max_scale(tbs, 0, 6000)  # Scale TBS to [0, 1]
         scaled_power = self.min_max_scale(power, 0, 50)  # Scale Power to [0, 1]
         return scaled_cqi, scaled_demand, scaled_tbs, scaled_power
 
     
     def compute(self):
         cumulative_regret = torch.zeros((self.T,))
+        average_regret = torch.zeros((self.T,))
         context_cqi, context_demand = 0, 0
         observe_tbs, observe_pwr = 0, 0
         best_expected_reward = 0
         action = torch.tensor(0, dtype=torch.float32).to(self.device)
+        start_time = time.time()
         for t in range(self.T):
             with global_lock_data:
                 context_cqi = global_ue_aggr_data.get_stats('cqi')['mean']
@@ -360,14 +362,17 @@ class vran(object):
                 print(context, action, reward, best_expected_reward)
                 self.agents[action].update(context, action, reward)
                 cumulative_regret[t] = cumulative_regret[t-1] + best_expected_reward - reward
+                average_regret[t] = cumulative_regret[t] / t
             context = [context_cqi, context_demand]
             action, best_expected_reward = self.choose_action(context, self.agents)
             self.send_action(self.actions[action].cpu().numpy())
             #time.sleep(0.04)
             
-
+        end_time = time.time()
+        print("Training time: {:.2f}".format(end_time - start_time))
         print("Stopping VITS")
         return cumulative_regret
+        #return average_regret
 
 
 class MACCallback(ric.mac_cb):
@@ -492,7 +497,7 @@ if __name__ == '__main__':
         df.to_csv('/home/nakaolab/ra/vits_result.csv', index=False)
     sns.lineplot(data=df, x='step', y='cum_regret', hue='legend')
     plt.savefig('/home/nakaolab/ra/result.png')
-    plt.show()
+    #plt.show()
     
 
     # stopping 
