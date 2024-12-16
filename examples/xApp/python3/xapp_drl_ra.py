@@ -359,7 +359,7 @@ class vran(object):
                 context_cqi, context_demand, observe_tbs, observe_pwr = self.scale_features(context_cqi, context_demand, observe_tbs, observe_pwr)
             if t > 0:
                 reward = self.cal_reward((observe_tbs, context_demand, observe_pwr))
-                print(context, action, reward, best_expected_reward)
+                print(t, context_demand, action, reward, best_expected_reward)
                 self.agents[action].update(context, action, reward)
                 cumulative_regret[t] = cumulative_regret[t-1] + best_expected_reward - reward
                 average_regret[t] = cumulative_regret[t] / t
