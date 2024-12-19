@@ -184,35 +184,65 @@ class Langevin(object):
             self.theta += - h * gradient + torch.normal(0, np.sqrt(2 * h), size=gradient.shape).to(self.device)
             del gradient
 
+parser = argparse.ArgumentParser(description="MAC Control")
+parser.add_argument('--do_train', default=True, action=argparse.BooleanOptionalAction, help="Does it train? (default: True)")
+parser.add_argument('--aggr_size', type=int, default=5, help="Size of aggregated data (default: 5)")
+parser.add_argument('--seed', type=int, default=42, help="Random seed for reproducibility (default: 42)")
+parser.add_argument('--algo', default='vits', help="Choose algorithm (default: vits)")
+parser.add_argument('--lr', type=float, default=0.01, help="Learning Rate (default: 0.01)")
+parser.add_argument('--logistic', default=True, action=argparse.BooleanOptionalAction, help="Is logistic or linear? (default: True)")
+parser.add_argument('--step', type=int, default=1000, help="Total training steps (default: 1000)")
+parser.add_argument('--eta', type=int, default=500, help="Eta (default: 500)")
+parser.add_argument('--nb_updates', type=int, default=10, help="Number of gradient steps K_t (default: 10)")
+parser.add_argument('--approx', default=False, action=argparse.BooleanOptionalAction, help="Whether to use approximation (default: False)")
+parser.add_argument('--hessian_free', default=False, action=argparse.BooleanOptionalAction, help="Is hessian free? (default: False)")
+parser.add_argument('--mcs_low', type=int, default=9, help="lower bound of mcs (default: 9)")
+parser.add_argument('--mcs_high', type=int, default=29, help="upper bound of mcs (default: 29)")
+parser.add_argument('--mcs_step', type=int, default=2, help="step of mcs values (default: 2)")
+parser.add_argument('--prb_low', type=int, default=5, help="lower bound of prb (default: 5)")
+parser.add_argument('--prb_high', type=int, default=107, help="upper bound of prb (default: 107)")
+parser.add_argument('--prb_step', type=int, default=5, help="step of prb values (default: 5)")
+parser.add_argument('--report_time', type=int, default=1, help="E2 reports time frequency (default: 1)")
+parser.add_argument('--rounds', type=int, default=10, help="Total rounds that test runs (default: 10)")
+parser.add_argument('--scale_cqi', type=int, default=15, help="upper bound of cqi (default: 15)")
+parser.add_argument('--scale_demand', type=int, default=300000, help="upper bound of demand (default: 300000)")
+parser.add_argument('--scale_tbs', type=int, default=300000, help="upper bound of tbs (default: 300000)")
+parser.add_argument('--scale_power', type=int, default=50, help="upper bound of power (default: 50)")
+parser.add_argument('--scale_snr', type=int, default=51, help="upper bound of snr (default: 51)")
+parser.add_argument('--power_penalty', type=float, default=2.0, help="penalty factor of power (default: 2.0)")
+parser.add_argument('--bler_penalty', type=float, default=2.0, help="penalty factor of bler (default: 2.0)")
+args = parser.parse_args()
+
 mac_hndlr = []
 
-global_ue_aggr_data = AggrData(max_length=5, datasets=['cqi', 'ul_demand', 'ul_throughput', 'power', 'ul_snr', 'ul_bler', 'ul_prb', 'ul_mcs'])
+global_ue_aggr_data = AggrData(max_length=args.aggr_size, datasets=['cqi', 'ul_demand', 'ul_throughput', 'power', 'ul_snr', 'ul_bler', 'ul_prb', 'ul_mcs'])
 
 # Global lock to ensure thread-safe access to the global dictionary
 global_lock_data = threading.Lock()
 global_lock_offload = threading.Lock()
 
 class vran(object):
-    def __init__(self, conn, dimension, regularisation, nb_iters, device, is_linear, Agent, hyperparameters, T, seed, mcs_low, mcs_high, mcs_step, prb_low, prb_high, prb_step):
+    def __init__(self, do_train, algo_name, conn, dimension, device, is_linear, Agent, hyperparameters, T, seed, action_ranges, scales, power_penalty, bler_penalty):
         self.dimension = dimension
         self.device = device
         self.is_linear = is_linear
-        self.regularisation = regularisation
-        self.nb_iters = nb_iters
         self.Agent = Agent
         self.hyperparameters = hyperparameters
         self.T = T
         self.seed = seed
         self.conn = conn
-        self.mcs_low = mcs_low
-        self.mcs_high = mcs_high
-        self.mcs_step = mcs_step
-        self.prb_low = prb_low
-        self.prb_high = prb_high
-        self.prb_step = prb_step
+        self.action_ranges = action_ranges
+        self.ucqi, self.udemand, self.utbs, self.upower, self.usnr = scales
+        self.do_train = do_train
+        self.mcs_high = 28
+        self.prb_high = 106
+        self.power_penalty = power_penalty
+        self.bler_penalty = bler_penalty
 
+        
+        print('Train with ', algo_name)
         # Generate all possible actions (MCS and PRB)
-        self.actions = torch.tensor(self.generate_actions(), dtype=torch.float32).to(self.device)
+        self.actions = torch.tensor(self.generate_actions(*self.action_ranges), dtype=torch.float32).to(self.device)
 
         # initialize agents
         np.random.seed(self.seed)
@@ -222,19 +252,27 @@ class vran(object):
         #self.cov_prior += torch.eye(self.dimension) * 1e-6  # Add small value to diagonal
         self.agents = [self.Agent(self.dimension, self.mean_prior, self.cov_prior, self.device, self.is_linear, *self.hyperparameters) for _ in range(len(self.actions))]
         print("Initilized agents")
+        if (self.do_train):
+            print('Run original scheduler')
     
-    def generate_actions(self):
+    def generate_actions(self, mcs_low, mcs_high, mcs_step, prb_low, prb_high, prb_step):
         """
         Generate all possible actions (MCS and PRB combinations).
         :return: Array of actions.
         """
-        MCS_range = range(self.mcs_low, self.mcs_high, self.mcs_step)  # MCS values [0, 28]
-        PRB_range = range(self.prb_low, self.prb_high, self.prb_step)  # PRB values [1, 273]
+        MCS_range = range(mcs_low, mcs_high+1, mcs_step)  # MCS values [mcs_low, mcs_high]
+        PRB_range = range(prb_low, prb_high+1, prb_step)  # PRB values [prb_low, prb_high]
+        self.mcs_high = mcs_high
+        self.prb_high = prb_high
         return np.array([[mcs, prb] for mcs in MCS_range for prb in PRB_range])
         
     def cal_reward(self, observe):
-        observe_tbs, context_demand, observe_pwr = observe
-        reward = np.log(1 + observe_tbs / context_demand) - 1.5 * np.log(1 + observe_pwr) #1.5 * energy_cost
+        observe_tbs, context_demand, observe_pwr, observe_bler = observe
+        reward = np.log(1 + observe_tbs / context_demand) - self.power_penalty * np.log(1 + observe_pwr) - self.bler_penalty * np.log(1 + max(0, observe_bler - 0.15))
+        #if observe_bler < 0.15:
+        #    reward = np.log(1 + observe_tbs / context_demand) - self.power_penalty * np.log(1 + observe_pwr)
+        #else:
+        #    reward = 0 - self.bler_penalty * np.log(1 + observe_bler)
         #if self.is_linear:
         #    reward= reward + torch.normal(0, 1, size=(1,)).to(self.device)[0]
         #else:
@@ -274,23 +312,25 @@ class vran(object):
         return (value - min_val) / (max_val - min_val)
 
     def scale_features(self, cqi, demand, tbs, power, snr):
-        scaled_cqi = self.min_max_scale(cqi, 0, 15)  # Scale CQI to [0, 1]
-        scaled_demand = self.min_max_scale(demand, 0, 300000)  # Scale Demand to [0, 1]
-        scaled_tbs = self.min_max_scale(tbs, 0, 6000)  # Scale TBS to [0, 1]
-        scaled_power = self.min_max_scale(power, 0, 50)  # Scale Power to [0, 1]
-        scaled_snr = self.min_max_scale(snr, 0, 32)
+        scaled_cqi = self.min_max_scale(cqi, 0, self.ucqi)  # Scale CQI to [0, 1]
+        scaled_demand = self.min_max_scale(demand, 0, self.udemand)  # Scale Demand to [0, 1]
+        scaled_tbs = self.min_max_scale(tbs, 0, self.utbs)  # Scale TBS to [0, 1]
+        scaled_power = self.min_max_scale(power, 0, self.upower)  # Scale Power to [0, 1]
+        scaled_snr = self.min_max_scale(snr, 0, self.usnr)
         return scaled_cqi, scaled_demand, scaled_tbs, scaled_power, scaled_snr
 
     
     def compute(self):
         cumulative_regret = torch.zeros((self.T,))
         average_regret = torch.zeros((self.T,))
-        mcs = torch.zeros((self.T,))
-        prb = torch.zeros((self.T,))
+        amcs = torch.zeros((self.T,))
+        aprb = torch.zeros((self.T,))
         context_cqi, context_demand = 0, 0
         observe_tbs, observe_pwr = 0, 0
         best_expected_reward = 0
         action = torch.tensor(0, dtype=torch.float32).to(self.device)
+        mcs = torch.zeros((self.T,))
+        prb = torch.zeros((self.T,))
         start_time = time.time()
         for t in range(self.T):
             with global_lock_data:
@@ -305,24 +345,31 @@ class vran(object):
                 observe_prb = global_ue_aggr_data.get_stats('ul_prb')['mean']
                 observe_mcs = global_ue_aggr_data.get_stats('ul_mcs')['mean']
                 context_cqi, context_demand, observe_tbs, observe_pwr, context_snr = self.scale_features(context_cqi, context_demand, observe_tbs, observe_pwr, context_snr)
-            if t > 0:
-                reward = self.cal_reward((observe_tbs, context_demand, observe_pwr))
-                print(t, context_snr, observe_bler, context_demand, reward, best_expected_reward)
-                self.agents[action].update(context, action, reward)
-                average_regret[t] = best_expected_reward - reward
+            if t > 0:                
+                reward = 0
+                if self.do_train:
+                    reward = self.cal_reward((observe_tbs, context_demand, observe_pwr, observe_bler))
+                    self.agents[action].update(context, action, reward)
+                average_regret[t] = abs(best_expected_reward - reward)
                 cumulative_regret[t] = cumulative_regret[t-1] + average_regret[t]
+                mcs_action, prb_action = self.actions[action].cpu().numpy()
+                amcs[t] = int(mcs_action)
+                aprb[t] = int(prb_action)
                 mcs[t] = observe_mcs
                 prb[t] = observe_prb
-                
-            context = [context_snr, context_demand]
+                print(f"{t} {context_demand:6.4f} {observe_tbs:6.4f} {context_snr:6.5f} {reward:6.4f} {average_regret[t]:6.4f}")
+                #print(t, context_demand, reward, best_expected_reward)
+                 
+            context = [context_cqi, context_demand]
             action, best_expected_reward = self.choose_action(context, self.agents)
-            self.send_action(self.actions[action].cpu().numpy())
-            #time.sleep(0.04)
+            if self.do_train: 
+                self.send_action(self.actions[action].cpu().numpy())
+            time.sleep(0.01)
             
         end_time = time.time()
         print("Training time: {:.2f}".format(end_time - start_time))
         print("Stopping VITS")
-        return cumulative_regret, average_regret, mcs, prb
+        return cumulative_regret, average_regret, mcs, prb, amcs, aprb
 
 
 class MACCallback(ric.mac_cb):
@@ -331,11 +378,10 @@ class MACCallback(ric.mac_cb):
         self.ind_num = 0
 
     def handle(self, ind):
-        # save cqi and demand values of each tbs of each ue into aggr_data
+        # save contexts and observation into aggr_data
         if len(ind.ue_stats) > 0:
             ue_stats = ind.ue_stats[0]
             with global_lock_data:
-                #if (self.ind_num > 100):
                 global_ue_aggr_data.add_data('cqi', ue_stats.wb_cqi, ind.tstamp) # ue_stats.wb_cqi
                 global_ue_aggr_data.add_data('ul_throughput', ue_stats.ul_curr_tbs, ind.tstamp)
                 global_ue_aggr_data.add_data('ul_demand', ue_stats.bsr, ind.tstamp)
@@ -344,7 +390,6 @@ class MACCallback(ric.mac_cb):
                 global_ue_aggr_data.add_data('ul_bler', ue_stats.ul_bler, ind.tstamp)
                 global_ue_aggr_data.add_data('ul_prb', ue_stats.ul_sched_rb, ind.tstamp)
                 global_ue_aggr_data.add_data('ul_mcs', ue_stats.ul_mcs1, ind.tstamp)
-            #self.ind_num += 1
 
 def run_monitor(stop_event, conn, run_time_sec, frequency):
     for i in range(0, len(conn)):
@@ -364,41 +409,16 @@ def run_monitor(stop_event, conn, run_time_sec, frequency):
         mac_cb = MACCallback()
         hndlr = ric.report_mac_sm(conn[i].id, freq, mac_cb)
         mac_hndlr.append(hndlr)
-        #time.sleep(1)
     
-    #time.sleep(run_time_sec)
     # Wait for the stop_event or timeout
     if stop_event.wait(timeout=run_time_sec):
         print("Stop event received. Exiting monitor.")
     else:
         print("Timeout elapsed. Exiting monitor.")
 
-parser = argparse.ArgumentParser(description="MAC Control")
-#parser.add_argument('-m', '--mcs', type=int, default=28, help="MCS value (default: 28)")
-#parser.add_argument('-p', '--prb', type=int, default=106, help="PRB value (default: 106)")
-#parser.add_argument('-a', '--add', type=int, default=True, help="Add Configurations? (default: True)")
-parser.add_argument('-s', '--seed', type=int, default=42, help="Random seed for reproducibility (default: 42)")
-parser.add_argument('-g', '--algo', default='vits', help="Choose algorithm (default: vits)")
-parser.add_argument('-r', '--lr', type=float, default=0.01, help="Learning Rate (default: 0.01)")
-parser.add_argument('-l', '--logistic', default=True, action=argparse.BooleanOptionalAction, help="Is logistic or linear? (default: True)")
-parser.add_argument('-t', '--step', type=int, default=1000, help="Total training steps (default: 1000)")
-parser.add_argument('-e', '--eta', type=int, default=500, help="Eta (default: 500)")
-parser.add_argument('-k', '--nb_updates', type=int, default=10, help="Number of gradient steps K_t (default: 10)")
-parser.add_argument('-x', '--approx', default=False, action=argparse.BooleanOptionalAction, help="Whether to use approximation (default: False)")
-parser.add_argument('-f', '--hessian_free', default=False, action=argparse.BooleanOptionalAction, help="Is hessian free? (default: False)")
-parser.add_argument('--mcs_low', type=int, default=9, help="lower bound of mcs (default: 9)")
-parser.add_argument('--mcs_high', type=int, default=29, help="upper bound of mcs (default: 29)")
-parser.add_argument('--mcs_step', type=int, default=2, help="step of mcs values (default: 2)")
-parser.add_argument('--prb_low', type=int, default=5, help="lower bound of prb (default: 5)")
-parser.add_argument('--prb_high', type=int, default=107, help="upper bound of prb (default: 107)")
-parser.add_argument('--prb_step', type=int, default=5, help="step of prb values (default: 5)")
-parser.add_argument('--report_time', type=int, default=1, help="E2 reports time frequency (default: 1)")
-parser.add_argument('--rounds', type=int, default=10, help="Total rounds that test runs (default: 10)")
-
 if __name__ == '__main__':
 
     # Parse the command-line arguments
-    args = parser.parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f'[SYSTEM], device: {device}')
     dimension = 2
@@ -429,7 +449,9 @@ if __name__ == '__main__':
 
     eta_list = [50, 100, 200, 500]
     eta = args.eta
-    env = vran(conn, dimension, 1, 50, device, args.logistic, algo, hyperparameter(eta), T, args.seed, args.mcs_low, args.mcs_high, args.mcs_step, args.prb_low, args.prb_high, args.prb_step)
+    action_ranges = (args.mcs_low, args.mcs_high, args.mcs_step, args.prb_low, args.prb_high, args.prb_step)
+    scales = (args.scale_cqi, args.scale_demand, args.scale_tbs, args.scale_power, args.scale_snr)
+    env = vran(args.do_train, algo_name, conn, dimension, device, args.logistic, algo, hyperparameter(eta), T, args.seed, action_ranges, scales, args.power_penalty, args.bler_penalty)
 
     # start monitoring thread
     run_time_sec = 1000
@@ -443,25 +465,30 @@ if __name__ == '__main__':
     # start resource allocation
     df = pd.DataFrame()
     for _ in range(args.rounds):
-        cum_regret, avg_regret, mcs, prb = env.compute()
+        cum_regret, avg_regret, mcs, prb, amcs, aprb = env.compute()
         row = pd.DataFrame({'seed': args.seed,
                             'legend': f'{algo_name} - eta: {eta}',
                             'step': range(T),
                             'cum_regret': cum_regret,
                             'avg_regret': avg_regret,
                             'mcs': mcs,
-                            'prb': prb})
+                            'prb': prb,
+                            'action_mcs': amcs,
+                            'action_prb': aprb})
         df = pd.concat([df, row], ignore_index=True)
     
     # Save the DataFrame to a CSV file
-    output_dir = '/home/nakaolab/ra'
+    if args.do_train:
+        output_dir = '/home/nakaolab/ra/train/test'
+    else:
+        output_dir = '/home/nakaolab/ra/no_train/test'
     os.makedirs(output_dir, exist_ok=True)  # Ensure the directory exists
     result_csv_path = os.path.join(output_dir, 'vits_result.csv')
     df.to_csv(result_csv_path, index=False)
     print(f"Results saved to {result_csv_path}")
 
     # Generate and save plots
-    plot_metrics = ['cum_regret', 'avg_regret', 'mcs', 'prb']
+    plot_metrics = ['cum_regret', 'avg_regret', 'mcs', 'prb', 'action_mcs', 'action_prb']
     for metric in plot_metrics:
         plt.figure(figsize=(10, 6))
         sns.lineplot(data=df, x='step', y=metric, hue='legend')
