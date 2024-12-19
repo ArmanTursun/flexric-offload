@@ -26,6 +26,8 @@ class AggrData:
         if dataset not in self.aggr_data:
             raise ValueError(f"Dataset '{dataset}' is not initialized.")
 
+        if value == 0:
+            return 0
         data_queue = self.aggr_data[dataset]['data']
         if len(data_queue) >= self.max_length:
             removed_value, _ = data_queue.popleft()
