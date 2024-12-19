@@ -374,7 +374,7 @@ int to_sql_string_mac_ue(global_e2_node_id_t const* id, mac_ue_stats_impl_t* sta
       //"%d,"// phr
       "%u,"// bsr
       "%f," // dl_bler
-      "%f," // ul_bler
+      "%f" // ul_bler
       //"%d," // dl_num_harq
       //"%u," // dl_harq[0]
       //"%u," // dl_harq[1]
