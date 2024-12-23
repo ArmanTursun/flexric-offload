@@ -252,7 +252,7 @@ class vran(object):
         #self.cov_prior += torch.eye(self.dimension) * 1e-6  # Add small value to diagonal
         self.agents = [self.Agent(self.dimension, self.mean_prior, self.cov_prior, self.device, self.is_linear, *self.hyperparameters) for _ in range(len(self.actions))]
         print("Initilized agents")
-        if (self.do_train):
+        if not self.do_train:
             print('Run original scheduler')
     
     def generate_actions(self, mcs_low, mcs_high, mcs_step, prb_low, prb_high, prb_step):
@@ -300,7 +300,7 @@ class vran(object):
         msg.ran_conf_len = 1
         confs = ric.mac_conf_array(1)
         mcs, prb = action
-        add = True
+        add = True if self.do_train else False
         for i in range(0, msg.ran_conf_len):
             confs[i] = self.create_conf(i, int(mcs), int(prb), add)
             #print(f"Sending to rnti: {i}, mcs value: {int(mcs)}, prb value: {int(prb)}, add value: {add}")
@@ -357,14 +357,13 @@ class vran(object):
                 aprb[t] = int(prb_action)
                 mcs[t] = observe_mcs
                 prb[t] = observe_prb
-                print(f"{t} {context_demand:6.4f} {observe_tbs:6.4f} {context_snr:6.5f} {reward:6.4f} {average_regret[t]:6.4f}")
+                print(f"{t} deman:{context_demand:3.2f} tbs:{observe_tbs:3.2f} bler:{observe_bler:4.3f} snr:{context_snr:3.2f} mcs:{observe_mcs:2.0f} prb:{observe_prb:3.0f} pwr:{observe_pwr:3.2f} rw:{reward:4.2f} rg:{average_regret[t]:4.2f}")
                 #print(t, context_demand, reward, best_expected_reward)
                  
             context = [context_cqi, context_demand]
             action, best_expected_reward = self.choose_action(context, self.agents)
-            if self.do_train: 
-                self.send_action(self.actions[action].cpu().numpy())
-            time.sleep(0.01)
+            self.send_action(self.actions[action].cpu().numpy())
+            time.sleep(0.05)
             
         end_time = time.time()
         print("Training time: {:.2f}".format(end_time - start_time))
