@@ -264,11 +264,13 @@ class vran(object):
         PRB_range = range(prb_low, prb_high+1, prb_step)  # PRB values [prb_low, prb_high]
         self.mcs_high = mcs_high
         self.prb_high = prb_high
-        return np.array([[mcs, prb] for mcs in MCS_range for prb in PRB_range])
+        actions = np.array([[mcs, prb] for mcs in MCS_range for prb in PRB_range])
+        np.random.shuffle(actions)
+        return actions
         
     def cal_reward(self, observe):
         observe_tbs, context_demand, observe_pwr, observe_bler = observe
-        reward = np.log(1 + observe_tbs / context_demand) - self.power_penalty * np.log(1 + observe_pwr) - self.bler_penalty * np.log(1 + max(0, observe_bler - 0.15))
+        reward = np.log(1 + observe_tbs) - self.power_penalty * np.log(1 + observe_pwr) - self.bler_penalty * np.log(1 + max(0, observe_bler - 0.15))
         #if observe_bler < 0.15:
         #    reward = np.log(1 + observe_tbs / context_demand) - self.power_penalty * np.log(1 + observe_pwr)
         #else:
@@ -331,6 +333,9 @@ class vran(object):
         action = torch.tensor(0, dtype=torch.float32).to(self.device)
         mcs = torch.zeros((self.T,))
         prb = torch.zeros((self.T,))
+        snr = torch.zeros((self.T,))
+        pwr = torch.zeros((self.T,))
+        tbs = torch.zeros((self.T,))
         start_time = time.time()
         for t in range(self.T):
             with global_lock_data:
@@ -347,6 +352,14 @@ class vran(object):
                 context_cqi, context_demand, observe_tbs, observe_pwr, context_snr = self.scale_features(context_cqi, context_demand, observe_tbs, observe_pwr, context_snr)
             if t > 0:                
                 reward = 0
+                # Generate custom non-linear noise
+                raw_noise = np.sin(np.random.uniform(-1, 1)) + np.power(np.random.uniform(-1, 1), 2)
+                # Scale the noise to be within [-0.2, 0.2]
+                scaled_noise = 0.1 * raw_noise / max(abs(raw_noise), 1e-8)
+                # Clip the noise to ensure exact range
+                noise = np.clip(scaled_noise, -0.2, 0.2)
+                
+                observe_pwr = observe_pwr + noise
                 if self.do_train:
                     reward = self.cal_reward((observe_tbs, context_demand, observe_pwr, observe_bler))
                     self.agents[action].update(context, action, reward)
@@ -357,18 +370,21 @@ class vran(object):
                 aprb[t] = int(prb_action)
                 mcs[t] = observe_mcs
                 prb[t] = observe_prb
+                snr[t] = context_snr
+                pwr[t] = observe_pwr
+                tbs[t] = observe_tbs
                 print(f"{t} deman:{context_demand:3.2f} tbs:{observe_tbs:3.2f} bler:{observe_bler:4.3f} snr:{context_snr:3.2f} mcs:{observe_mcs:2.0f} prb:{observe_prb:3.0f} pwr:{observe_pwr:3.2f} rw:{reward:4.2f} rg:{average_regret[t]:4.2f}")
                 #print(t, context_demand, reward, best_expected_reward)
                  
-            context = [context_cqi, context_demand]
+            context = [context_snr, context_demand]
             action, best_expected_reward = self.choose_action(context, self.agents)
             self.send_action(self.actions[action].cpu().numpy())
-            time.sleep(0.05)
+            time.sleep(0.01)
             
         end_time = time.time()
         print("Training time: {:.2f}".format(end_time - start_time))
         print("Stopping VITS")
-        return cumulative_regret, average_regret, mcs, prb, amcs, aprb
+        return cumulative_regret, average_regret, mcs, prb, amcs, aprb, snr, pwr, tbs
 
 
 class MACCallback(ric.mac_cb):
@@ -464,16 +480,19 @@ if __name__ == '__main__':
     # start resource allocation
     df = pd.DataFrame()
     for _ in range(args.rounds):
-        cum_regret, avg_regret, mcs, prb, amcs, aprb = env.compute()
+        cum_regret, avg_regret, mcs, prb, amcs, aprb, snr, pwr, tbs = env.compute()
         row = pd.DataFrame({'seed': args.seed,
-                            'legend': f'{algo_name} - eta: {eta}',
+                            'legend': f'{algo_name} - eta: {eta}' if args.do_train else 'Original Scheduler',
                             'step': range(T),
-                            'cum_regret': cum_regret,
-                            'avg_regret': avg_regret,
+                            'snr': snr,
+                            'action_mcs': amcs,
+                            'action_prb': aprb,
                             'mcs': mcs,
                             'prb': prb,
-                            'action_mcs': amcs,
-                            'action_prb': aprb})
+                            'pwr': pwr,
+                            'tbs': tbs,
+                            'cum_regret': cum_regret,
+                            'avg_regret': avg_regret})
         df = pd.concat([df, row], ignore_index=True)
     
     # Save the DataFrame to a CSV file
@@ -487,7 +506,7 @@ if __name__ == '__main__':
     print(f"Results saved to {result_csv_path}")
 
     # Generate and save plots
-    plot_metrics = ['cum_regret', 'avg_regret', 'mcs', 'prb', 'action_mcs', 'action_prb']
+    plot_metrics = ['cum_regret', 'avg_regret', 'mcs', 'prb'] #, 'action_mcs', 'action_prb'
     for metric in plot_metrics:
         plt.figure(figsize=(10, 6))
         sns.lineplot(data=df, x='step', y=metric, hue='legend')
