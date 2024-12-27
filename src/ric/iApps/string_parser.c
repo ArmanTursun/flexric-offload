@@ -50,6 +50,7 @@ void to_string_mac_ue_stats(mac_ue_stats_impl_t* stats, int64_t tstamp, char* ou
         "ul_curr_tbs=%lu,"
         "dl_sched_rb=%lu,"
         "ul_sched_rb=%lu,"
+        "poor_sched_rate=%f,"
         "pusch_snr=%g,"
         "pucch_snr=%g,"
         "rnti=%x,"
@@ -93,6 +94,7 @@ void to_string_mac_ue_stats(mac_ue_stats_impl_t* stats, int64_t tstamp, char* ou
         ,stats->ul_curr_tbs
         ,stats->dl_sched_rb
         ,stats->ul_sched_rb
+        ,stats->poor_sched_rate
         ,stats->pusch_snr 
         ,stats->pucch_snr 
         ,stats->rnti 

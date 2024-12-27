@@ -98,6 +98,8 @@ typedef struct
   uint64_t ul_curr_tbs;
   uint64_t dl_sched_rb;
   uint64_t ul_sched_rb;
+  
+  float poor_sched_rate;
  
   float pusch_snr; //: float = -64;
   float pucch_snr; //: float = -64;

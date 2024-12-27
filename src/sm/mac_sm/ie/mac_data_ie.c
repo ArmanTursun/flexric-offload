@@ -144,6 +144,7 @@ mac_ue_stats_impl_t cp_mac_ue_stats_impl(mac_ue_stats_impl_t const* src)
                               .ul_curr_tbs = src->ul_curr_tbs,
                               .dl_sched_rb = src->dl_sched_rb,
                               .ul_sched_rb = src->ul_sched_rb,
+                              .poor_sched_rate = src->poor_sched_rate,
 
                               .pusch_snr = src->pusch_snr, //: float = -64;
                               .pucch_snr = src->pucch_snr, //: float = -64;
@@ -230,7 +231,8 @@ bool eq_mac_ind_msg(mac_ind_msg_t* m0, mac_ind_msg_t* m1)
         ue0->ul_curr_tbs != ue1->ul_curr_tbs ||
         ue0->dl_sched_rb != ue1->dl_sched_rb ||
         ue0->ul_sched_rb != ue1->ul_sched_rb ||
-        ue0->rnti != ue1->rnti ||
+        ue0->rnti != ue1->rnti ||        
+        ue0->poor_sched_rate != ue1->poor_sched_rate ||
         //ue0->dl_aggr_prb != ue1->dl_aggr_prb ||  
         //ue0->ul_aggr_prb != ue1->ul_aggr_prb ||
         //ue0->dl_aggr_sdus != ue1-> dl_aggr_sdus ||

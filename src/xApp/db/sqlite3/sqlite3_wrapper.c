@@ -78,6 +78,7 @@ void create_mac_ue_table(sqlite3* db)
                        "bsr INT CHECK(bsr >= 0 AND  bsr < 4294967296),"
                        "dl_bler REAL CHECK(dl_bler  >= 0 AND dl_bler < 4294967296),"
                        "ul_bler REAL CHECK(ul_bler  >= 0 AND ul_bler < 4294967296),"
+                       "poor_sched_rate REAL CHECK(poor_sched_rate  >= 0 AND poor_sched_rate < 4294967296),"
                        "dl_num_harq INT CHECK(dl_num_harq >= 0 AND  dl_num_harq < 5),"
                        "dl_harq_round0 INT CHECK(dl_harq_round0 >= 0 AND  dl_harq_round0 < 4294967296),"
                        "dl_harq_round1 INT CHECK(dl_harq_round1 >= 0 AND  dl_harq_round1 < 4294967296),"
@@ -357,6 +358,7 @@ int to_sql_string_mac_ue(global_e2_node_id_t const* id, mac_ue_stats_impl_t* sta
       "%lu," //ul_curr_tbs
       "%lu," //dl_sched_rb
       "%lu," //ul_sched_rb
+      "%f,"  //poor_sched_rate
       "%g,"// pusch_snr        
       "%g,"//  pucch_snr      
       "%u,"// rnti            
@@ -405,6 +407,7 @@ int to_sql_string_mac_ue(global_e2_node_id_t const* id, mac_ue_stats_impl_t* sta
       ,stats->ul_curr_tbs
       ,stats->dl_sched_rb
       ,stats->ul_sched_rb
+      ,stats->poor_sched_rate
       ,stats->pusch_snr      
       ,stats->pucch_snr      
       ,stats->rnti 
