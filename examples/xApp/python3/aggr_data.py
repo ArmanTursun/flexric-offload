@@ -20,6 +20,10 @@ class AggrData:
                 'max_deque': deque()
             } for dataset in datasets
         }
+        self.poor_sched_rate = 0.0
+
+    def update_poor_sched_rate(self, poor_sched_rate):
+        self.poor_sched_rate = poor_sched_rate
 
     def add_data(self, dataset, value, timestamp):
         """Add a new value for the specified dataset."""
