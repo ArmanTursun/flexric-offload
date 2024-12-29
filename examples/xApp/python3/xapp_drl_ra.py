@@ -242,7 +242,10 @@ class vran(object):
         
         print('Train with ', algo_name)
         # Generate all possible actions (MCS and PRB)
-        self.actions = torch.tensor(self.generate_actions(*self.action_ranges), dtype=torch.float32).to(self.device)
+        actions, normalized_actions = self.generate_actions(*self.action_ranges)
+        self.actions = torch.tensor(actions, dtype=torch.float32).to(self.device)
+        #self.actions_original = torch.tensor(actions, dtype=torch.float32).to(self.device)
+        #self.actions = torch.tensor(normalized_actions, dtype=torch.float32).to(self.device)
 
         # initialize agents
         np.random.seed(self.seed)
@@ -251,26 +254,47 @@ class vran(object):
         self.cov_prior = torch.diag(torch.var(self.actions, axis=0))
         #self.cov_prior += torch.eye(self.dimension) * 1e-6  # Add small value to diagonal
         self.agents = [self.Agent(self.dimension, self.mean_prior, self.cov_prior, self.device, self.is_linear, *self.hyperparameters) for _ in range(len(self.actions))]
+        #self.check_action_sampling_bias()
         print("Initilized agents")
         if not self.do_train:
             print('Run original scheduler')
     
+    # Checking Action Sampling Bias
+    def check_action_sampling_bias(self):
+        for agent in self.agents:
+            theta = agent.sample_posterior()
+            rewards = self.actions @ theta.cpu().numpy()
+            top_action_indices = np.argsort(rewards)[-10:]  # Top 10 actions
+            top_actions = self.actions.cpu().numpy()[top_action_indices]
+            print("Top Actions based on Sampled Posterior:")
+            print(top_actions)
+            #sampled_rewards.append(self.actions[torch.argmax(rewards)])
+
     def generate_actions(self, mcs_low, mcs_high, mcs_step, prb_low, prb_high, prb_step):
         """
         Generate all possible actions (MCS and PRB combinations).
         :return: Array of actions.
         """
-        MCS_range = range(mcs_low, mcs_high+1, mcs_step)  # MCS values [mcs_low, mcs_high]
-        PRB_range = range(prb_low, prb_high+1, prb_step)  # PRB values [prb_low, prb_high]
+        MCS_range = list(range(mcs_low, mcs_high+1, mcs_step))  # MCS values [mcs_low, mcs_high]
+        PRB_range = list(range(prb_low, prb_high+1, prb_step))  # PRB values [prb_low, prb_high]
+        if PRB_range[-1] != prb_high:
+            PRB_range[-1] = prb_high
         self.mcs_high = mcs_high
         self.prb_high = prb_high
-        actions = np.array([[mcs, prb] for mcs in MCS_range for prb in PRB_range])
-        np.random.shuffle(actions)
-        return actions
+        actions = [[mcs, prb] for mcs in MCS_range for prb in PRB_range]
+        normalized_actions = [[(mcs - mcs_low) / (mcs_high - mcs_low), (prb - prb_low) / (prb_high - prb_low)] for mcs in MCS_range for prb in PRB_range] # (prb - prb_low) / (prb_high - prb_low)
+        #p.random.shuffle(actions)
+        return actions, normalized_actions
         
     def cal_reward(self, observe):
-        observe_tbs, context_demand, observe_pwr, observe_bler = observe
-        reward = np.log(1 + observe_tbs) - self.power_penalty * np.log(1 + observe_pwr) - self.bler_penalty * np.log(1 + max(0, observe_bler - 0.15))
+        observe_tbs, context_demand, observe_prate, observe_pwr, observe_bler = observe
+        reward = np.log(1 + float(observe_tbs/context_demand)) - self.power_penalty * np.log(1 + observe_pwr)# - self.bler_penalty * np.log(1 + max(0, observe_bler - 0.15))
+        #reward = 0.0
+        #if (observe_prate < 1.0):
+        #    reward = np.log(1 + observe_tbs)# - self.power_penalty * np.log(1 + observe_pwr)
+        #else:
+        #    reward = -(observe_prate + self.power_penalty * np.log(1 + observe_pwr))
+            #reward = -10.0
         #if observe_bler < 0.15:
         #    reward = np.log(1 + observe_tbs / context_demand) - self.power_penalty * np.log(1 + observe_pwr)
         #else:
@@ -311,7 +335,7 @@ class vran(object):
         ric.control_mac_sm(self.conn[0].id, msg)
     
     def min_max_scale(self, value, min_val, max_val):
-        return (value - min_val) / (max_val - min_val)
+        return round((value - min_val) / (max_val - min_val), 5)
 
     def scale_features(self, cqi, demand, tbs, power, snr):
         scaled_cqi = self.min_max_scale(cqi, 0, self.ucqi)  # Scale CQI to [0, 1]
@@ -321,16 +345,26 @@ class vran(object):
         scaled_snr = self.min_max_scale(snr, 0, self.usnr)
         return scaled_cqi, scaled_demand, scaled_tbs, scaled_power, scaled_snr
 
+    def gen_noise(self):
+        # Generate custom non-linear noise
+        raw_noise = np.sin(np.random.uniform(-1, 1)) + np.power(np.random.uniform(-1, 1), 2)
+        # Scale the noise to be within [-0.2, 0.2]
+        scaled_noise = 0.1 * raw_noise / max(abs(raw_noise), 1e-8)
+        # Clip the noise to ensure exact range
+        noise = np.clip(scaled_noise, -0.1, 0.1)
+
+        return noise
     
     def compute(self):
         cumulative_regret = torch.zeros((self.T,))
         average_regret = torch.zeros((self.T,))
         amcs = torch.zeros((self.T,))
         aprb = torch.zeros((self.T,))
-        context_cqi, context_demand = 0, 0
-        observe_tbs, observe_pwr = 0, 0
-        best_expected_reward = 0
-        action = torch.tensor(0, dtype=torch.float32).to(self.device)
+        #context_cqi, context_demand = 0, 0
+        #observe_tbs, observe_pwr = 0, 0
+        #best_expected_reward = 0
+        #action = torch.tensor(len(self.actions) - 1 , dtype=torch.float32).to(self.device)
+        action = len(self.actions) - 1
         mcs = torch.zeros((self.T,))
         prb = torch.zeros((self.T,))
         snr = torch.zeros((self.T,))
@@ -349,37 +383,35 @@ class vran(object):
                 observe_bler = global_ue_aggr_data.get_stats('ul_bler')['mean']
                 observe_prb = global_ue_aggr_data.get_stats('ul_prb')['mean']
                 observe_mcs = global_ue_aggr_data.get_stats('ul_mcs')['mean']
+                observe_prate = round(global_ue_aggr_data.poor_sched_rate, 5)
                 context_cqi, context_demand, observe_tbs, observe_pwr, context_snr = self.scale_features(context_cqi, context_demand, observe_tbs, observe_pwr, context_snr)
-            if t > 0:                
-                reward = 0
-                # Generate custom non-linear noise
-                raw_noise = np.sin(np.random.uniform(-1, 1)) + np.power(np.random.uniform(-1, 1), 2)
-                # Scale the noise to be within [-0.2, 0.2]
-                scaled_noise = 0.1 * raw_noise / max(abs(raw_noise), 1e-8)
-                # Clip the noise to ensure exact range
-                noise = np.clip(scaled_noise, -0.2, 0.2)
-                
-                observe_pwr = observe_pwr + noise
-                if self.do_train:
-                    reward = self.cal_reward((observe_tbs, context_demand, observe_pwr, observe_bler))
-                    self.agents[action].update(context, action, reward)
-                average_regret[t] = abs(best_expected_reward - reward)
-                cumulative_regret[t] = cumulative_regret[t-1] + average_regret[t]
-                mcs_action, prb_action = self.actions[action].cpu().numpy()
-                amcs[t] = int(mcs_action)
-                aprb[t] = int(prb_action)
-                mcs[t] = observe_mcs
-                prb[t] = observe_prb
-                snr[t] = context_snr
-                pwr[t] = observe_pwr
-                tbs[t] = observe_tbs
-                print(f"{t} deman:{context_demand:3.2f} tbs:{observe_tbs:3.2f} bler:{observe_bler:4.3f} snr:{context_snr:3.2f} mcs:{observe_mcs:2.0f} prb:{observe_prb:3.0f} pwr:{observe_pwr:3.2f} rw:{reward:4.2f} rg:{average_regret[t]:4.2f}")
-                #print(t, context_demand, reward, best_expected_reward)
-                 
+            #if t == 0:                             
+            #pwr_noise = self.gen_noise()
+            #if (observe_pwr + pwr_noise > 0):
+            #    observe_pwr = observe_pwr + pwr_noise
             context = [context_snr, context_demand]
+            reward = 0 
+            if self.do_train:
+                reward = self.cal_reward((observe_tbs, context_demand, observe_prate, observe_pwr, observe_bler))
+                self.agents[action].update(context, action, reward)
+                #self.check_action_sampling_bias()
+            if t == 0:
+                _, best_expected_reward = self.choose_action(context, self.agents)           
+            average_regret[t] = abs(best_expected_reward - reward)
+            cumulative_regret[t] = cumulative_regret[t-1] + average_regret[t]
+            mcs_action, prb_action = self.actions[action].cpu().numpy()
+            amcs[t] = int(mcs_action)
+            aprb[t] = int(prb_action)
+            mcs[t] = observe_mcs
+            prb[t] = observe_prb
+            snr[t] = context_snr
+            pwr[t] = observe_pwr
+            tbs[t] = observe_tbs
+            print(f"{t} demand:{context_demand:3.2f} tbs:{observe_tbs:3.2f} prate:{observe_prate:6.5f} snr:{context_snr:3.2f} mcs:{observe_mcs:2.0f} prb:{observe_prb:3.0f} pwr:{observe_pwr:4.2f} exrw:{best_expected_reward:4.2f} rw:{reward:4.2f} rg:{average_regret[t]:4.2f}")
+            #print(t, context_demand, reward, best_expected_reward)
             action, best_expected_reward = self.choose_action(context, self.agents)
             self.send_action(self.actions[action].cpu().numpy())
-            time.sleep(0.01)
+            time.sleep(0.02)
             
         end_time = time.time()
         print("Training time: {:.2f}".format(end_time - start_time))
@@ -405,6 +437,7 @@ class MACCallback(ric.mac_cb):
                 global_ue_aggr_data.add_data('ul_bler', ue_stats.ul_bler, ind.tstamp)
                 global_ue_aggr_data.add_data('ul_prb', ue_stats.ul_sched_rb, ind.tstamp)
                 global_ue_aggr_data.add_data('ul_mcs', ue_stats.ul_mcs1, ind.tstamp)
+                global_ue_aggr_data.update_poor_sched_rate(ue_stats.poor_sched_rate)
 
 def run_monitor(stop_event, conn, run_time_sec, frequency):
     for i in range(0, len(conn)):
