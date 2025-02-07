@@ -4,12 +4,13 @@ import math
 
 class AggrData:
     def __init__(self, max_length, datasets):
-        self.max_length = max_length
+        #self.max_length = max_length 
         self.datasets = datasets
         self.aggr_data = {
             dataset: {
                 'data': deque(),  # save (value, timestamp) tuples
                 'mean': 0,
+                'var': 0,
                 'max': float('-inf'),
                 'min': float('inf'),
                 'num': 0,
@@ -17,7 +18,8 @@ class AggrData:
                 'sum_squares': 0,
                 'sum_cubes': 0,  # for skewness calculation
                 'min_deque': deque(),
-                'max_deque': deque()
+                'max_deque': deque(), 
+                'max_length': max_length if dataset == 'power' or dataset == 'ul_throughput' or dataset == 'ul_demand' or dataset == 'prate' else 1 #  or dataset == 'ul_prb' or dataset == 'ul_mcs'
             } for dataset in datasets
         }
         self.poor_sched_rate = 0.0
@@ -30,10 +32,11 @@ class AggrData:
         if dataset not in self.aggr_data:
             raise ValueError(f"Dataset '{dataset}' is not initialized.")
 
-        if value == 0:
-            return 0
+        #if value == 0:
+        #    return 0
         data_queue = self.aggr_data[dataset]['data']
-        if len(data_queue) >= self.max_length:
+        max_length = self.aggr_data[dataset]['max_length']
+        if len(data_queue) >= max_length:
             removed_value, _ = data_queue.popleft()
             self._update_removal(dataset, removed_value)
 
@@ -43,12 +46,17 @@ class AggrData:
     def _update_addition(self, dataset, value):
         """Update statistics for a dataset when a new value is added."""
         stats = self.aggr_data[dataset]
+        old_mean = stats['mean']
         stats['sum'] += value
         stats['sum_squares'] += value ** 2
         stats['num'] += 1
 
         # Update mean
         stats['mean'] = stats['sum'] / stats['num']
+
+        # Update variance using Welford's method
+        if stats['num'] > 1:
+            stats['var'] = ((stats['num'] - 2) / (stats['num'] - 1)) * stats['var'] + (value - old_mean) ** 2 / stats['num']
 
         # Update sum of cubes (for skewness calculation)
         mean = stats['mean']
@@ -69,6 +77,7 @@ class AggrData:
     def _update_removal(self, dataset, removed_value):
         """Update statistics for a dataset when an old value is removed."""
         stats = self.aggr_data[dataset]
+        old_mean = stats['mean']
         stats['sum'] -= removed_value
         stats['sum_squares'] -= removed_value ** 2
         stats['num'] -= 1
@@ -77,6 +86,7 @@ class AggrData:
             # Reset statistics if the dataset is empty
             stats.update({
                 'mean': 0,
+                'var': 0,
                 'max': float('-inf'),
                 'min': float('inf'),
                 'sum': 0,
@@ -87,8 +97,15 @@ class AggrData:
             })
             return
 
+        # Update mean and variance using Welford's method
+        stats['mean'] = stats['sum'] / stats['num']
+        if stats['num'] > 1:
+            stats['var'] = ((stats['num'] + 1) / stats['num']) * stats['var'] - ((removed_value - old_mean) ** 2) / stats['num']
+        else:
+            stats['var'] = 0
+        
         # Update mean and sum of cubes
-        mean = stats['sum'] / stats['num']
+        mean = stats['mean']
         stats['sum_cubes'] -= (removed_value - mean) ** 3
 
         # Adjust indices in min/max deques
@@ -111,6 +128,7 @@ class AggrData:
         n = stats['num']
         mean = stats['mean']
         variance = (stats['sum_squares'] / n) - (mean ** 2)
+        #variance = stats['var']
         if variance == 0:
             return 0  # No skewness if variance is zero
 
@@ -125,6 +143,7 @@ class AggrData:
         if timestamp is None:
             return {
                 'mean': stats['mean'],
+                'var': stats['var'],
                 'max': stats['max'],
                 'min': stats['min'],
                 'skewness': self.get_skewness(dataset)
@@ -133,6 +152,7 @@ class AggrData:
         if stats['data'] and stats['data'][0][1] > timestamp:
             return {
                 'mean': stats['mean'],
+                'var': stats['var'],
                 'max': stats['max'],
                 'min': stats['min'],
                 'skewness': self.get_skewness(dataset)
