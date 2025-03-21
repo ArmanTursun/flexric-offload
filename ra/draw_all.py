@@ -11,7 +11,7 @@ from scipy.ndimage import gaussian_filter1d
 dataset = 'dynamic_10_20'
 #dataset = 'stationary_15'
 #dataset = ''
-output_dir = '/home/nakaolab/flexric-offload/ra/power/all_' + dataset + '/'
+output_dir = '/home/nakaolab/flexric-offload/ra/power/all_' + dataset + '_new2/' + '/'
 os.makedirs(output_dir, exist_ok=True)  # Ensure the directory exists
 input_dir1 = '/home/nakaolab/flexric-offload/ra/train/new_' + dataset + '/'
 input_dir2 = '/home/nakaolab/flexric-offload/ra/no_train/new_' + dataset + '/'
@@ -49,16 +49,19 @@ df2 = read_and_concatenate_files(input_dir2)
 #df3 = pd.DataFrame()
 #df3 = pd.read_csv(input_dir3)
 # Generate and save plots
-plot_metrics = ['cum_regret'] #, 'action_mcs', 'action_prb' 'tbs'    'pwr'   'avg_regret', 'cum_regret', 'mcs', 'prb'
+plot_metrics = ['pwr', 'avg_regret', 'cum_regret', 'mcs', 'prb'] #, 'action_mcs', 'action_prb' 'tbs'    'pwr', 'avg_regret', 'cum_regret', 'mcs', 'prb'
+gen_plot = True
 label = {'pwr': 'Power (Watt)', 'cum_regret': 'Cumulative Regret', 'avg_regret': 'Regret', 'mcs': 'MCS', 'prb': 'PRB', 'action_mcs': 'MCS Cap', 'action_prb': 'PRB Cap', 'tbs': 'TBS'}
 scaler = MinMaxScaler(feature_range=(0, 1))
 for metric in plot_metrics:
     plt.figure(figsize=(10, 6))
     df = pd.DataFrame()
     df_summary = pd.DataFrame()
-    if metric == 'pwr' or metric == 'action_mcs' or metric == 'action_prb' or metric == 'mcs' or metric == 'prb' or metric == 'tbs':
+    if metric == 'pwr': 
+        df = pd.concat([df1, df2], ignore_index=True)
+    elif metric == 'action_mcs' or metric == 'action_prb' or metric == 'mcs' or metric == 'prb' or metric == 'tbs':
         df = pd.concat([df2, df1], ignore_index=True)
-        #df = pd.concat([df1, df2, df3], ignore_index=True)
+        df = df[df[metric] > 0]
     else:
         df = df1   
         # Compute inverse weights (lower values get higher weights)
@@ -71,8 +74,6 @@ for metric in plot_metrics:
 
     #df[metric] = scaler.fit_transform(df[[metric]])
     
-
-    
     startidx = 7
     #endidx = 5600
     df = df[df['step'] > startidx]
@@ -81,50 +82,111 @@ for metric in plot_metrics:
     if metric == 'pwr':
         df['pwr'] = df['pwr'] - 50.0
 
+    df.loc[df['legend'] == 'VITS', 'legend'] = 'SORA'
     palette = sns.color_palette()
 
-    if metric == 'pwr' or metric == 'cum_regret' or metric == 'avg_regret':
+    if gen_plot and metric == 'cum_regret':
         #sns.lineplot(data=df_sampled, x='step', y='mean', hue='legend', palette=palette)  # Marker for clarity
         #plt.fill_between(quantiles.index, quantiles[0.05], quantiles[0.95], color=palette, alpha=0.2)
         sns.lineplot(data=df, x='step', y=metric, hue='legend', palette=palette, estimator='mean', weights=df['weights'], errorbar=("ci", 85)) #  (palette[1], palette[0])
-        #min_line = plt.axhline(y=minimum_value - 50.0 + 0.5, color='red', linestyle='--', linewidth=3) # 20-74.1, 15-74.6, 10-75.1, dynamic-76.11
-        plt.xlabel('T($10^3$)', fontsize=24)
-        plt.ylabel(label[metric] + ' ($10^3$)', fontsize=24) # .replace('_', ' ').capitalize()
-        plt.title(f'{label[metric]} over Steps', fontsize=24) # metric.replace("_", " ").capitalize()
-        #plt.xticks([], [])  # Hide x-axis ticks
-        tick_positions = np.arange(0, 7001, 1000)  # Positions of xticks
-        tick_labels = [str(int(tick / 1000)) for tick in tick_positions]  # Convert to 1, 2, 3...
-        plt.xticks(tick_positions, tick_labels, fontsize=24)  # Set formatted xticks
-        #plt.text(2100, -2.6, r'$\times10^2$', ha='right', va='bottom', fontsize=20) # -1600
-        #plt.xticks(np.arange(0, 2001, 200))
-        #plt.yticks(np.arange(23, 35, 1), fontsize=24)
-        #plt.yticks(np.arange(0, 13, 2), fontsize=24)
-        tick_positions_y = np.arange(0, 25001, 5000)  # Positions of xticks
-        tick_labels_y = [str(int(tick / 1000)) for tick in tick_positions_y]  # Convert to 1, 2, 3...
-        plt.yticks(tick_positions_y, tick_labels_y, fontsize=24)  # Set formatted xticks
-        #plt.yticks(np.arange(0, 8000, 1000), fontsize=24)
-        handles, labels = plt.gca().get_legend_handles_labels()
-        #min_legend = mlines.Line2D([], [], color = 'red', linestyle='--', linewidth=3, label='Minimum')
-        #handles.append(min_legend)
-        #labels.append('Minimum')
-        plt.legend(handles=handles, labels=labels, fontsize=24, loc='upper right')
-    if metric == 'mcs' or metric == 'prb':
-        df = df[df[metric] > 0]
-        ax = sns.ecdfplot(data=df, x=metric, hue=df['legend'], palette=(palette[1], palette[0])) #  (palette[1], palette[0])
-        plt.xlabel(label[metric], fontsize=24)
-        if metric == 'mcs':
-            plt.xticks(np.arange(11, 26, 4))
+        if dataset == 'dynamic_10_20':
+            plt.xlabel('T($10^3$)', fontsize=24)
+            plt.ylabel(label[metric] + ' ($10^3$)', fontsize=24) # .replace('_', ' ').capitalize()        
+            tick_positions = np.arange(0, 7001, 1000)  # Positions of xticks
+            tick_labels = [str(int(tick / 1000)) for tick in tick_positions]  # Convert to 1, 2, 3...
+            plt.xticks(tick_positions, tick_labels, fontsize=24)  # Set formatted xticks
+            #tick_positions_y = np.arange(0, 25001, 5000)  # Positions of xticks
+            #tick_labels_y = [str(int(tick / 1000)) for tick in tick_positions_y]  # Convert to 1, 2, 3...
+            #plt.yticks(tick_positions_y, tick_labels_y, fontsize=24)  # Set formatted xticks
+            plt.yticks([0, 5000, 10000, 15000, 20000], [0, 5, 10, 15, 20], fontsize=24, rotation=0)  # Horizontal y-ticks
         else:
-            plt.xticks(np.arange(10, 105, 20))
+            plt.xlabel('T($10^2$)', fontsize=24)
+            plt.ylabel(label[metric] + ' ($10^3$)', fontsize=24) # .replace('_', ' ').capitalize()
+            tick_positions = np.arange(0, 2001, 400)  # Positions of xticks
+            tick_labels = [str(int(tick / 100)) for tick in tick_positions]  # Convert to 1, 2, 3...
+            plt.xticks(tick_positions, tick_labels, fontsize=24)  # Set formatted xticks
+            #tick_positions_y = np.arange(0, 8000, 1000)  # Positions of xticks
+            #tick_labels_y = [str(int(tick / 1000)) for tick in tick_positions_y]  # Convert to 1, 2, 3...
+            #plt.yticks(tick_positions_y, tick_labels_y, fontsize=24)  # Set formatted xticks     
+            plt.yticks([0, 1000, 2000, 3000, 4000, 5000], [0, 1, 2, 3, 4, 5], fontsize=24, rotation=0)  # Horizontal y-ticks
+        handles, labels = plt.gca().get_legend_handles_labels()
+        plt.legend(handles=handles, labels=labels, fontsize=24, loc='lower right')    
+        #plt.title(f'{label[metric]} over Steps', fontsize=24) # metric.replace("_", " ").capitalize()     
+    
+    if gen_plot and metric == 'avg_regret':
+        sns.lineplot(data=df, x='step', y=metric, hue='legend', palette=palette, estimator='mean', weights=df['weights'], errorbar=("ci", 85)) #  (palette[1], palette[0])
+        if dataset == 'dynamic_10_20':
+            plt.xlabel('T($10^3$)', fontsize=24)
+            plt.ylabel(label[metric], fontsize=24) # .replace('_', ' ').capitalize()
+            tick_positions = np.arange(0, 7001, 1000)  # Positions of xticks
+            tick_labels = [str(int(tick / 1000)) for tick in tick_positions]  # Convert to 1, 2, 3...
+            plt.xticks(tick_positions, tick_labels, fontsize=24)  # Set formatted xticks
+            plt.yticks([0, 3, 6, 9, 12], [0, 3, 6, 9, 12], fontsize=24, rotation=0)  # Horizontal y-ticks
+        else:
+            plt.xlabel('T($10^2$)', fontsize=24)
+            plt.ylabel(label[metric], fontsize=24) # .replace('_', ' ').capitalize()
+            tick_positions = np.arange(0, 2001, 400)  # Positions of xticks
+            tick_labels = [str(int(tick / 100)) for tick in tick_positions]  # Convert to 1, 2, 3...
+            plt.xticks(tick_positions, tick_labels, fontsize=24)  # Set formatted xticks
+            #plt.yticks(np.arange(0, 13, 3), fontsize=24)
+            plt.yticks([0, 3, 6, 9], [0, 3, 6, 9], fontsize=24, rotation=0)  # Horizontal y-ticks
+        handles, labels = plt.gca().get_legend_handles_labels()
+        plt.legend(handles=handles, labels=labels, fontsize=24, loc='upper right')
+        #plt.title(f'{label[metric]} over Steps', fontsize=24) # metric.replace("_", " ").capitalize()
+    
+    if gen_plot and metric == 'pwr':
+        sns.lineplot(data=df, x='step', y=metric, hue='legend', palette=palette, estimator='mean', weights=df['weights'], errorbar=("ci", 85)) #  (palette[1], palette[0])
+        if dataset == 'dynamic_10_20':
+            plt.xlabel('T($10^3$)', fontsize=24)
+            plt.ylabel(label[metric], fontsize=24) # .replace('_', ' ').capitalize()
+            tick_positions = np.arange(0, 7001, 1000)  # Positions of xticks
+            tick_labels = [str(int(tick / 1000)) for tick in tick_positions]  # Convert to 1, 2, 3...
+            plt.xticks(tick_positions, tick_labels, fontsize=24)  # Set formatted xticks
+            plt.yticks([22, 24, 26, 28, 30, 32, 34], ['', 24, 26, 28, 30, 32, ''], fontsize=24, rotation=0)  # Horizontal y-ticks
+        else:
+            plt.xlabel('T($10^2$)', fontsize=24)
+            plt.ylabel(label[metric], fontsize=24) # .replace('_', ' ').capitalize()
+            tick_positions = np.arange(0, 2001, 400)  # Positions of xticks
+            tick_labels = [str(int(tick / 100)) for tick in tick_positions]  # Convert to 1, 2, 3...
+            plt.xticks(tick_positions, tick_labels, fontsize=24)  # Set formatted xticks
+            #plt.yticks(np.arange(23, 35, 1), fontsize=24)
+            plt.yticks([22, 24, 26, 28, 30, 32, 34], ['', 24, 26, 28, 30, 32, ''], fontsize=24, rotation=0)  # Horizontal y-ticks
+        min_line = plt.axhline(y=minimum_value - 50.0 + 0.5, color='red', linestyle='--', linewidth=3) # 20-74.1, 15-74.6, 10-75.1, dynamic-76.11
+        min_legend = mlines.Line2D([], [], color = 'red', linestyle='--', linewidth=3, label='Minimum')
+        handles, labels = plt.gca().get_legend_handles_labels()
+        handles.append(min_legend)
+        labels.append('Minimum')
+        plt.legend(handles=handles, labels=labels, fontsize=24, loc='upper right')  
+        #plt.title(f'{label[metric]} over Steps', fontsize=24) # metric.replace("_", " ").capitalize()
+    
+    if gen_plot and (metric == 'mcs' or metric == 'prb'):
+        ax = sns.ecdfplot(data=df, x=metric, hue=df['legend'], palette=(palette[1], palette[0])) #  (palette[1], palette[0])
+        plt.xlabel(label[metric], fontsize=24)       
+        if metric == 'mcs':
+            #plt.xticks(np.arange(11, 26, 4))
+            plt.xticks([10, 15, 20, 25], [10, 15, 20, 25], fontsize=24, rotation=0)  # Horizontal y-ticks
+            plt.yticks([0.2, 0.4, 0.6, 0.8], [0.2, 0.4, 0.6, 0.8], fontsize=24, rotation=0)  # Horizontal y-ticks
+        else:
+            #plt.xticks(np.arange(10, 105, 20))
+            plt.xticks([10, 30, 50, 70, 90], [15, 35, 55, 75, 95], fontsize=24, rotation=0)  # Horizontal x-ticks
+            plt.yticks([0.2, 0.4, 0.6, 0.8], [0.2, 0.4, 0.6, 0.8], fontsize=24, rotation=0)  # Horizontal y-ticks
         plt.ylabel('Proportion', fontsize=24)
         ax.tick_params(axis='both', labelsize=24)
         sns.move_legend(ax, loc='upper left', title=None, fontsize=24)
-        plt.title(f'{label[metric]} Distribution', fontsize=24) # metric.replace("_", " ").capitalize()
-    #plt.legend(title='Legend', fontsize=12) # title='Legend', 
-    #plt.grid(True)   
-    plot_path = os.path.join(output_dir, f'{metric}.png')
-    plt.tight_layout()
-    plt.savefig(plot_path)
-    plt.close()
-    print(f"Plot saved to {plot_path}")
+        #plt.title(f'{label[metric]} Distribution', fontsize=24) # metric.replace("_", " ").capitalize()
+    
+    if not gen_plot:
+        total_vits = df[df['legend'] == 'SORA'][metric].sum()
+        total_baseline = df[df['legend'] == 'Baseline'][metric].sum()
+        # Calculate the percentage reduction
+        reduction_percentage = ((total_baseline - total_vits) / total_baseline) * 100
+        print(f"{dataset} {metric} Reduction Percentage: {reduction_percentage:.2f}%")
+    else:
+        #plt.legend(title='Legend', fontsize=12) # title='Legend', 
+        plt.grid(True)   
+        plot_path = os.path.join(output_dir, f'{metric}.png')
+        plt.tight_layout()
+        plt.savefig(plot_path)
+        plt.close()
+        print(f"Plot saved to {plot_path}")
     
